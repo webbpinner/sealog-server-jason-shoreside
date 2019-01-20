@@ -1,0 +1,60 @@
+{
+  "name": "sealog-server-jason-shoreside",
+  "version": "0.3.0",
+  "license": "GPLv3",
+  "description": "Sealog event logging server, tweaked for shoreside use",
+  "bugs": {
+    "url": "https://github.com/webbpinner/sealog-server-jason-shoreside/issues"
+  },
+  "main": "server.js",
+  "scripts": {
+    "test": "./node_modules/lab/bin/lab -v --leaks --timeout 8000",
+    "start": "NODE_ENV=production node server.js",
+    "start-test": "NODE_ENV=testing node server.js",
+    "start-devel": "NODE_ENV=development npm-run-all --parallel lint start:server",
+    "start:server": "nodemon server.js",
+    "lint": "eslint . --ext .js"
+  },
+  "author": "Webb Pinner",
+  "homepage": "https://github.com/webbpinner/",
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/webbpinner/sealog-server-jason-shoreside.git"
+  },
+  "keywords": [
+    "hapi",
+    "eventlogging"
+  ],
+  "dependencies": {
+    "axios": "^0.18.0",
+    "bcryptjs": "^2.4.3",
+    "glue": "^5.0.0",
+    "good": "^8.1.1",
+    "good-console": "^7.1.0",
+    "good-squeeze": "^5.1.0",
+    "hapi": "^17.8.1",
+    "hapi-auth-jwt2": "^8.2.0",
+    "hapi-mongodb": "^8.0.0",
+    "hapi-swagger": "^9.3.0",
+    "inert": "^5.1.2",
+    "joi": "^14.3.1",
+    "jquery-extend": "^2.0.3",
+    "json-2-csv": "^3.1.1",
+    "mongodb": "^3.1.10",
+    "nes": "^9.1.0",
+    "nodemailer": "^5.1.1",
+    "vision": "^5.4.4"
+  },
+  "devDependencies": {
+    "blipp": "^3.1.2",
+    "eslint": "^5.12.0",
+    "nodemon": "^1.18.9",
+    "npm-run-all": "^4.1.5"
+  },
+  "eslintConfig": {
+    "parserOptions": {
+      "ecmaVersion": 2017
+    }
+  }
+}

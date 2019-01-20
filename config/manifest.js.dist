@@ -1,0 +1,385 @@
+const {
+  sealogDB,
+  sealogDB_devel,
+} = require('../config/db_constants');
+
+let env = process.env.NODE_ENV || 'development';
+
+env = (env == 'test')? 'development': env;
+
+const envKey = key => {
+
+  const configuration = {
+    development: {
+      host: '0.0.0.0',
+      port: 8000,
+      wsPort: 8001,
+      prefix: '/sealog-server',
+      db: sealogDB_devel
+    },
+    testing: {
+      host: '0.0.0.0',
+      port: 8000,
+      wsPort: 8001,
+      prefix: '/sealog-server',
+      db: sealogDB
+    },
+    production: {
+      host: '0.0.0.0',
+      port: 8000,
+      wsPort: 8001,
+      prefix: '/sealog-server',
+      db: sealogDB
+    }
+  };
+
+  return configuration[env][key];
+};
+
+const mongodb_URL = 'mongodb://localhost:27017/'+ envKey('db');
+
+const manifest = {
+  connections: [
+    {
+      host: envKey('host') || '127.0.0.1',
+      port: envKey('port') || '8000',
+      routes: {
+        cors: true
+      },
+      router: {
+        stripTrailingSlash: true
+      },
+      labels: ["api"]
+    },
+    {
+      host: envKey('host') || '127.0.0.1',
+      port: envKey('wsPort') || '8001',
+      routes: {
+        cors: true
+      },
+      router: {
+        stripTrailingSlash: true
+      },
+      labels: ["ws"]
+    }
+  ],
+
+  registrations: [
+    {
+      plugin: 'hapi-auth-jwt2',
+      options: {
+        select: ['api', 'ws']
+      }
+    },
+    {
+      plugin: {
+        register: 'hapi-mongodb',
+        options: {
+          url: mongodb_URL,
+          settings: {
+            poolSize: 20
+          },
+          decorate: true
+        }
+      },
+      options: {
+        select: ['api', 'ws']
+      }
+    },
+    {
+      plugin: './plugins/auth',
+      options: {
+        select: ['api', 'ws']
+      }
+    },
+    {
+      plugin: 'inert',
+      options: {
+        select: ['api']
+      }
+    },
+    {
+      plugin: 'vision',
+      options: {
+        select: ['api']
+      }
+    },
+    {
+      plugin: {
+        register: 'nes',
+        options: {
+          auth: {
+            route: 'jwt',
+            type: 'direct'
+          }
+        }
+      },
+      options: {
+        select: ['ws']
+      }
+    },
+    {
+      plugin: 'hapi-swagger',
+      options: {
+        routes: {
+          prefix: envKey('prefix')
+        },
+        select: ['api']
+      }
+    },
+    {
+      plugin: {
+        register: './routes/api/v1/auth'
+      },
+      options: {
+        routes: {
+          prefix: envKey('prefix') + '/api/v1'
+        },
+        select: ['api']
+      }
+    },
+    {
+      plugin: {
+        register: './routes/api/v1/cruises'
+      },
+      options: {
+        routes: {
+          prefix: envKey('prefix') + '/api/v1'
+        },
+        select: ['api']
+      }
+    },
+    {
+      plugin: {
+        register: './routes/api/v1/custom_vars'
+      },
+      options: {
+        routes: {
+          prefix: envKey('prefix') + '/api/v1'
+        },
+        select: ['api']
+      }
+    },
+    {
+      plugin: {
+        register: './routes/default'
+      },
+      options: {
+        routes: {
+          prefix: envKey('prefix') 
+        },
+        select: ['api']
+      }
+    },
+    {
+      plugin: {
+        register: './routes/api/v1/event_aux_data'
+      },
+      options: {
+        routes: {
+          prefix: envKey('prefix') + '/api/v1'
+        },
+        select: ['api']
+      }
+    },
+    {
+      plugin: {
+        register: './routes/api/v1/event_exports'
+      },
+      options: {
+        routes: {
+          prefix: envKey('prefix') + '/api/v1'
+        },
+        select: ['api']
+      }
+    },
+    {
+      plugin: {
+        register: './routes/api/v1/event_templates'
+      },
+      options: {
+        routes: {
+          prefix: envKey('prefix') + '/api/v1'
+        },
+        select: ['api']
+      }
+    },
+    {
+      plugin: {
+        register: './routes/api/v1/events'
+      },
+      options: {
+        routes: {
+          prefix: envKey('prefix') + '/api/v1'
+        },
+        select: ['api']
+      }
+    },
+    {
+      plugin: {
+        register: './routes/api/v1/lowerings'
+      },
+      options: {
+        routes: {
+          prefix: envKey('prefix') + '/api/v1'
+        },
+        select: ['api']
+      }
+    },
+    {
+      plugin: {
+        register: './routes/api/v1/users'
+      },
+      options: {
+        routes: {
+          prefix: envKey('prefix') + '/api/v1'
+        },
+        select: ['api']
+      }
+    },    {
+      plugin: './routes/ws/events',
+      options: {
+        routes: {
+          prefix: envKey('prefix') 
+        },
+        select: ['ws']
+      }
+    }
+  ]
+};
+
+if(env == 'development') { // DEVELOPMENT
+
+  manifest.registrations.push({
+    "plugin": {
+      "register": "blipp",
+      "options": {}
+    }
+  });
+
+  manifest.registrations.push({
+    "plugin": {
+      "register": "./plugins/dbDevel_cruises",
+      "options": {}
+    }
+  });
+
+  manifest.registrations.push({
+    "plugin": {
+      "register": "./plugins/db_custom_vars",
+      "options": {}
+    }
+  });
+
+  manifest.registrations.push({
+    "plugin": {
+      "register": "./plugins/dbDevel_event_aux_data",
+      "options": {}
+    }
+  });
+
+  manifest.registrations.push({
+    "plugin": {
+      "register": "./plugins/dbDevel_event_templates",
+      "options": {}
+    }
+  });
+
+  manifest.registrations.push({
+    "plugin": {
+      "register": "./plugins/dbDevel_events",
+      "options": {}
+    }
+  });
+
+  manifest.registrations.push({
+    "plugin": {
+      "register": "./plugins/dbDevel_lowerings",
+      "options": {}
+    }
+  });
+
+  manifest.registrations.push({
+    "plugin": {
+      "register": "./plugins/dbDevel_users",
+      "options": {}
+    }
+  });
+
+  manifest.registrations.push({
+    "plugin": {
+      "register": "good",
+      "options": {
+        "ops": { interval: 60000 },
+        "reporters": {
+          "console": [{
+            "module": "good-squeeze",
+            "name": "Squeeze",
+            "args": [{
+              "error": "*",
+              "log": "*",
+              "request": "*",
+              "response": "*"
+            }]
+          }, {
+            module: "good-console"
+          }, "stdout"]
+        }
+      }
+    }
+  });
+
+} else if(env == 'production') { // PRODUCTION
+  manifest.registrations.push({
+    "plugin": {
+      "register": "./plugins/db_custom_vars",
+      "options": {}
+    }
+  });
+
+  manifest.registrations.push({
+    "plugin": {
+      "register": "./plugins/db_cruises",
+      "options": {}
+    }
+  });
+
+  manifest.registrations.push({
+    "plugin": {
+      "register": "./plugins/db_event_aux_data",
+      "options": {}
+    }
+  });
+
+  manifest.registrations.push({
+    "plugin": {
+      "register": "./plugins/db_event_templates",
+      "options": {}
+    }
+  });
+
+  manifest.registrations.push({
+    "plugin": {
+      "register": "./plugins/db_events",
+      "options": {}
+    }
+  });
+
+  manifest.registrations.push({
+    "plugin": {
+      "register": "./plugins/db_lowerings",
+      "options": {}
+    }
+  });
+
+  manifest.registrations.push({
+    "plugin": {
+      "register": "./plugins/db_users",
+      "options": {}
+    }
+  });
+
+
+}
+
+module.exports = manifest;

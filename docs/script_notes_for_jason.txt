@@ -1,0 +1,83 @@
+
+##### SEALOG SCRIPT NOTES #####
+Author: Webb Pinner, webbpinner@gmail.com
+Updated: Nov 7, 2018
+
+# PRE-CRUISE
+This can be done from any machine with a modern web-browser that can
+reach the sealog server's IP address.
+
++ Setup a New cruise
+  - Log into the Sealog web-interface as "jason"
+  - Navigate to System Management --> Cruises
+  - Click the "Add Cruise" button.
+  - Complete the form.  Red asterisks designates the required fields.
+  - Click the "Create" button
+
++ Hide the previous cruise (optional)
+  - Log into the Sealog web-interface as "jason"
+  - Navigate to System Management --> Cruises
+  - Click the "eye" icon next to the cruise you wish to hide. Hidden
+    cruises will have an eye icon with a diagonal slash through it.
+
+# PRE-DIVE:
+This can be done from any machine with a modern web-browser that can
+reach the sealog server's IP address.
+
++ Setup a New lowering
+  - Log into the Sealog web-interface as "jason"
+  - Navigate to System Management --> Lowerings
+  - Click the "Add Lowering" button.
+  - Complete the form.  Red asterisks designates the required fields.
+  - Click the "Create" button
+
+# POST-DIVE:
+This can be done from any machine with a modern web-browser that can
+reach the sealog server's IP address.
+
++ Update the start/stop times for the lowering.
+  - Log into the Sealog web-interface as "jason"
+  - Click the "Review Cruises/Lowerings" link in the top bar navigation
+  - Select the current cruise from the list of cruises
+  - Select the recently completed lowering from the list of lowerings
+    within the expanded cruise information panel.
+  - Click the "Goto Search" button within the lowering information
+    panel.
+  - Use the search page to determine the start/stop times for the
+    lowering.  An easy way to determine the start/stop times may be to
+    filter the events using "VEHICLE" as the event value.  Make note of
+    these timestamps.
+  - Navigate to System Management --> Lowerings
+  - Select the recently completed lowering. This will populate the form
+    with the metadata for the lowering.
+  - Update the start/stop times based on the timestamps pulled from the
+    previous step
+  - Click "Update" to save the changes.
+
+# POST LAST DIVE OF CRUISE
+This can be done from any machine with a modern web-browser that can
+reach the sealog server's IP address.
+
++ Export the data from all of the lowerings for the current cruise
+  - Log into the Sealog web-interface as "jason"
+  - Click the "Review Cruises/Lowerings" link in the top bar
+    navigation
+  - Select the current cruise from the list of cruises
+  - Make note of the lowerings that have occured during the current
+    cruise
+  - Open a terminal window.
+  - SSH into the sealog-server machine as "jason"
+  - cd to ~/sealog-server-jason/misc
+  - run "./sealog-postdive.sh -c <cruise_id> <lowering_id>" for each
+    lowering that occured during the current cruise replacing <cruise_id>
+    with the current cruise id (i.e AT42-01) and <lowering_id> with the
+    first lowering of the cruise (i.e. J2-1106).  Repeat this for each of
+    the lowerings that occured during the current cruise.
+  - Use scp or rsync to copy the /home/jason/sealog-backup/<cruise_id>
+    folder to the desire data repository.  This folder will contain the
+    sealog cruise-level record and directories for each of the lowerings.
+    Within each of the lowering directories there will be json-formatted
+    files containing the lowering metadata record, event data and event
+    aux data, a sub-directory of framegrabs and the shell script used to
+    copy the framegrabs from their original location to the framegrab sub-
+    directory.

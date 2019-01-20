@@ -1,0 +1,9 @@
+const reCaptchaSecret = ""
+const emailAddress = "";
+const emailPassword = "";
+
+module.exports = {
+  reCaptchaSecret,
+  emailAddress,
+  emailPassword
+};

@@ -1,0 +1,51 @@
+*** Sealog Server Data Management ***
+Author: Webb Pinner, webbpinner@gmail.com
+Written: May 2, 2018
+Updated: January 14, 2019
+
+**** Pre-Dive ****
++ Verify the ASNAP service is working correctly
+  - login to sealog client as guest
+  - Look at the ASNAP status in the lowering-left of the UI
+  - If the ASNAP service is "Off"
+    - Use the top navbar and select System Maintenance --> Toggle ASNAP.  This should change the status to "On"
+    - Click "SeaLog" in the upper-left of the UI to return to the main window
+  - Wait upto 10 seconds and look for new "ASNAP" events to appear in the event history window.
+  - If events do not appear then try the following:
+    - Goto http://198.17.154.223:9001
+    - Click the "Restart" link next to "sealog-asnap"
++ Create the new lowering:
+  - Login as jason (admin)
+  - Goto System Management --> Lowerings
+  - Complete the "Create New Lowering" form
+    - Since the end date/time is unknown simple set it to the current date/time + 1 day.  This will be updated later.
+
+**** During the Dive ****
+- Guest makes events ad-hoc
+- Autosnap makes an event every 10 seconds
+
+**** Post-Dive ****
++ Disable Auto-snap in sealog if needed
+  + Disabling auto-snap can be done in one of 2 ways:
+    + from the sealog-client web-interface
+      - login to sealog client as jason (admin).
+      - Take note of the ASNAP status in the footer.  Initially it make read "Unknown" but within a few seconds it should switch to either "Off" or "On".  If it switches to "Off" then ASNAP is already disabled and you're done.  If it reads "On" then please continue with these instructions.
+      - Use the top navbar to select System Maintenance --> Toggle ASNAP Status.
+      - This should toggle the message in the footer from "On" to "Off"
+    + using the sealog-server API from the command-line
+      From the command line enter the following command replacing:
+        - <token> with the JWT token for the jason (admin) account
+        - <sealog server IP> with the IP address of the sealog machine
+
+      curl -X PATCH --header 'Content-Type: application/json' --header 'Accept: application/json' --header 'authorization: <token>' -d '{
+        "custom_var_name": "asnapStatus",
+        "custom_var_value": "Off"
+      }' 'http://<sealog server IP>:8000/sealog-server/api/v1/custom_vars/59810167212b348aed7fa9f5'
+
++ Update the lowering end date/time
+  - Login as jason (admin)
+    - Goto System Management --> Lowerings
+    - Click the edit (pencil) icon next to the most recent dive.
+    - Update the End Date/Time in the form to the actual end date/time.
+      - If you do not know the date/time you can use the "Event Management" page within Sealog to figure it out.
+

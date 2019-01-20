@@ -1,0 +1,7 @@
+/node_modules
+npm-debug.log
+.DS_Store
+/config/manifest.js
+/config/path_constants.js
+/config/db_constants.js
+package-lock.json
