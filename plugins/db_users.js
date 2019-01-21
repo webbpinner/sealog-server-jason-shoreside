@@ -65,7 +65,7 @@ exports.plugin = {
 
     try {
       console.log("Creating Users Collection");
-      const collection = await db.createCollection(cruisesTable)
+      const collection = await db.createCollection(usersTable)
 
       console.log("Populating Users Collection");
       await collection.insertMany(init_data)
