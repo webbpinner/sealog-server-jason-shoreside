@@ -222,7 +222,7 @@ exports.plugin = {
           if(!result) {
             return h.response({statusCode: 401, error: 'invalid token', message: 'password reset token is invalid'}).code(401);
           } else if(result.resetPasswordExpires < new Date().getTime()) {
-            const resetUser = await db.collection(usersTable).update({_id: result._id}, { $set: {resetPasswordToken: null, resetPasswordExpires: null}});
+            const resetUser = await db.collection(usersTable).updateOne({_id: result._id}, { $set: {resetPasswordToken: null, resetPasswordExpires: null}});
             return h.response({statusCode: 401, error: 'invalid token', message: 'password reset token has expired'}).code(401);
           } else {
             user = result
@@ -254,7 +254,7 @@ exports.plugin = {
         })
 
         try {
-          const result = await db.collection(usersTable).update({_id: user._id}, { $set: {password: hashedPassword, resetPasswordToken: null, resetPasswordExpires: null}});
+          const result = await db.collection(usersTable).updateOne({_id: user._id}, { $set: {password: hashedPassword, resetPasswordToken: null, resetPasswordExpires: null}});
 
           return h.response({statusCode: 204, message: "password updated"}).code(204);
 
@@ -341,7 +341,7 @@ exports.plugin = {
         user.last_login = new Date();
 
         try {
-          const result = await db.collection(usersTable).update({ _id: new ObjectID(user._id) }, {$set: user})
+          const result = await db.collection(usersTable).updateOne({ _id: new ObjectID(user._id) }, {$set: user})
           if (!result) {
             console.log("ERROR:", err);
             return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);
@@ -503,7 +503,7 @@ exports.plugin = {
           
           let token = crypto.randomBytes(20).toString('hex')
           
-          const userUpdate = await db.collection(usersTable).update({ _id: user._id }, { $set: {resetPasswordToken: token, resetPasswordExpires: Date.now() + (resetPasswordTokenExpires * 60 * 1000)} })
+          const userUpdate = await db.collection(usersTable).updateOne({ _id: user._id }, { $set: {resetPasswordToken: token, resetPasswordExpires: Date.now() + (resetPasswordTokenExpires * 60 * 1000)} })
 
           let link = passwordResetUrl + token
           const mailOptions = {

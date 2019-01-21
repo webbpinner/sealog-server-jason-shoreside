@@ -391,7 +391,7 @@ exports.plugin = {
         }
 
         try {
-          const result = await db.collection(usersTable).update(query, { $set: user })
+          const result = await db.collection(usersTable).updateOne(query, { $set: user })
           return h.response({statusCode:204, message: "User Account Updated"}).code(204);
         } catch(err) {
           console.log("ERROR:", err);
