@@ -311,7 +311,7 @@ exports.plugin = {
       config: {
         auth: {
           strategy: 'jwt',
-          scope: ['admin', 'write_lowerings']
+          scope: ['admin', 'create_lowerings']
         },
         validate: {
           headers: {
@@ -485,7 +485,7 @@ exports.plugin = {
       config: {
         auth: {
           strategy: 'jwt',
-          scope: ['admin', 'write_lowerings']
+          scope: ['admin', 'create_lowerings']
         },
         validate: {
           headers: {

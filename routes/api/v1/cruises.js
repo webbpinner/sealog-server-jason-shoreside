@@ -338,7 +338,7 @@ exports.plugin = {
       config: {
         auth: {
           strategy: 'jwt',
-          scope: ['admin', 'write_cruises']
+          scope: ['admin', 'create_cruises']
         },
         validate: {
           headers: {
@@ -554,7 +554,7 @@ exports.plugin = {
       config: {
         auth: {
           strategy: 'jwt',
-          scope: ['admin', 'write_cruises']
+          scope: ['admin', 'create_cruises']
         },
         validate: {
           headers: {

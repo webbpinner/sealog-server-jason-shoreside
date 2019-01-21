@@ -216,18 +216,6 @@ exports.plugin = {
           remoteip: request.info.remoteAddress
         }
 
-        try {
-          const reCaptchaVerify = await axios.get('https://www.google.com/recaptcha/api/siteverify?secret=' + reCaptchaSecret + '&response=' + request.payload.reCaptcha + '&remoteip=' + request.info.remoteAddress,
-          );
-
-          if(!reCaptchaVerify.data.success) {
-            return h.response({statusCode: 401, error: "unauthorized", message: "reCaptcha failed" }).code(401)
-          }
-        } catch(err) {
-           console.log(err)
-           return h.response({statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503)
-        }
-
         let user = null
         try {
           const result = await db.collection(usersTable).findOne({ resetPasswordToken: request.payload.token })
@@ -242,6 +230,18 @@ exports.plugin = {
         } catch (err) {
           console.log("ERROR:", err);
           return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);
+        }
+
+        try {
+          const reCaptchaVerify = await axios.get('https://www.google.com/recaptcha/api/siteverify?secret=' + reCaptchaSecret + '&response=' + request.payload.reCaptcha + '&remoteip=' + request.info.remoteAddress,
+          );
+
+          if(!reCaptchaVerify.data.success) {
+            return h.response({statusCode: 401, error: "unauthorized", message: "reCaptcha failed" }).code(401)
+          }
+        } catch(err) {
+           console.log(err)
+           return h.response({statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503)
         }
 
         let password = request.payload.password;

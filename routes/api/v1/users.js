@@ -266,13 +266,12 @@ exports.plugin = {
           if (!result) {
             return h.response({ "statusCode": 400, 'message': 'Bad request'}).code(400);
           }
+          return h.response({ n: result.result.n, ok: result.result.ok, insertedCount: result.insertedCount, insertedId: result.insertedId }).code(201);
 
         } catch(err) {
           console.log("ERROR:", err);
           return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);
         }
-   
-        return h.response({ n: result.result.n, ok: result.result.ok, insertedCount: result.insertedCount, insertedId: result.insertedId }).code(201);
       },
       config: {
         auth: {
@@ -474,7 +473,7 @@ exports.plugin = {
         try {
           const result = await db.collection(usersTable).findOne(query)
           if(!result) {
-            return h.response({ "statusCode": 404, 'message': 'No record found for id: ' + request.params.id }).code(404);
+            return h.response({ "statusCode": 404, 'message': 'No record found for user id: ' + request.params.id }).code(404);
           }
         } catch(err) {
           console.log("ERROR:", err);
@@ -507,10 +506,6 @@ exports.plugin = {
         },
         response: {
           status: {
-            204: Joi.object({
-              statusCode: Joi.number().integer(),
-              message: Joi.string()
-            }),
             400: Joi.object({
               statusCode: Joi.number().integer(),
               error: Joi.string(),

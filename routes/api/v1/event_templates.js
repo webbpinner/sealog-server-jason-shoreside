@@ -392,8 +392,6 @@ exports.plugin = {
             return h.response({ "statusCode": 404, 'message': 'No record found for id: ' + request.params.id }).code(404);
           }
 
-          console.log(typeof(result.system_template));
-          console.log(request.auth.credentials.scope);
           if (result.system_template && !request.auth.credentials.scope.includes('admin')) {
             return h.response({"statusCode": 401, 'error': 'Unauthorized', 'message': 'user does not have permission to delete system templates'}).code(401);
           }
