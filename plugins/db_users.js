@@ -50,30 +50,21 @@ exports.plugin = {
     try {
       const result = await db.listCollections({name:usersTable}).toArray()
       if(result) {
-        console.log("Users Collection is present... dropping it");
-        try {
-          await db.dropCollection(usersTable)
-        } catch(err) {
-          console.log("ERROR:", err.code)
-          throw(err)
-        }
+        console.log("Collection already exists");
+        return true
       }
     } catch(err) {
       console.log("ERROR:", err.code)
       throw(err)
     }
 
+    console.log("Creating Users Collection");
     try {
-      console.log("Creating Users Collection");
-      const collection = await db.createCollection(usersTable)
-
-      console.log("Populating Users Collection");
-      await collection.insertMany(init_data)
-
+      const result = await db.createCollection(usersTable)
       return true
     } catch(err) {
       console.log("ERROR:", err.code)
       throw(err)
     }
   }
-}
+};
