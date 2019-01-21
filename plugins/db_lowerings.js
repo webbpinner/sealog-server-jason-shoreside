@@ -10,8 +10,8 @@ exports.plugin = {
   dependencies: ['hapi-mongodb'],
   register: async (server, options) => {
 
-    const db = request.mongo.db;
-    const ObjectID = request.mongo.ObjectID;
+    const db = server.mongo.db;
+    const ObjectID = server.mongo.ObjectID;
 
     console.log("Searching for Lowerings Collection");
     try {

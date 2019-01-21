@@ -1,6 +1,6 @@
 {
   "name": "sealog-server-jason-shoreside",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "license": "GPLv3",
   "description": "Sealog event logging server, tweaked for shoreside use",
   "bugs": {
