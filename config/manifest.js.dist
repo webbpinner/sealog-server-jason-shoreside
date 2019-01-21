@@ -1,8 +1,8 @@
 // const Fs = require('fs')
 
 // const tlsOptions = {
-//   key: Fs.readFileSync('/etc/letsencrypt/live/sealog.oceandatarat.org/privkey.pem'),
-//   cert: Fs.readFileSync('/etc/letsencrypt/live/sealog.oceandatarat.org/fullchain.pem')
+//   key: Fs.readFileSync(<privKey.pem>),
+//   cert: Fs.readFileSync(<fullchain.pem>)
 // };
 
 const {
