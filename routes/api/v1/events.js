@@ -1,8 +1,8 @@
-'use strict';
+
 
 const Joi = require('joi');
-const converter = require('json-2-csv');
-const extend = require('jquery-extend');
+const Converter = require('json-2-csv');
+const Extend = require('jquery-extend');
 
 const json2csvOptions = {
   checkSchemaDifferences: false,
@@ -20,13 +20,15 @@ const {
 } = require('../../../config/db_constants');
 
 
-function flattenJSON(json) {
-  // console.log("Pre-Export:", this.props.event_export.events)
-  let exportData = json.map((event) => {
-    let copiedEvent = extend(true, {}, event);
+const _flattenJSON = (json) => {
+
+  const exportData = json.map((event) => {
+  
+    const copiedEvent = Extend(true, {}, event);
 
     copiedEvent.event_options.map((data) => {
-      let elementName = `event_option_${data.event_option_name}`;
+  
+      const elementName = `event_option_${data.event_option_name}`;
       // console.log(elementName, data.event_option_value);
       copiedEvent[elementName] = data.event_option_value;
     });
@@ -39,7 +41,7 @@ function flattenJSON(json) {
   });
 
   return exportData;
-}
+};
 
 const _renameAndClearFields = (doc) => {
 
@@ -53,7 +55,7 @@ const _renameAndClearFields = (doc) => {
 exports.plugin = {
   name: 'routes-api-events',
   dependencies: ['hapi-mongodb', 'nes'],
-  register: async (server, options) => {
+  register: (server, options) => {
 
     server.subscription('/ws/status/newEvents');
     server.subscription('/ws/status/updateEvents');
@@ -70,224 +72,252 @@ exports.plugin = {
         let cruise = null;
 
         try {
-          const cruiseResult = await db.collection(cruisesTable).findOne({ _id: ObjectID(request.params.id) })
+          const cruiseResult = await db.collection(cruisesTable).findOne({ _id: ObjectID(request.params.id) });
 
-          if(!cruiseResult) {
+          if (!cruiseResult) {
             return h.response({ "statusCode": 404, 'message': 'No record found for id: ' + request.params.id }).code(404);
           }
 
+          if (!request.auth.credentials.scope.includes('admin')) {
+            if (cruiseResult.cruise_hidden || !cruiseResult.cruise_access_list.includes(request.auth.credentials.id)) {
+              return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to retrieve this cruise" }).code(401);
+            }
+          }
+
           cruise = cruiseResult;
-        } catch(err) {
-           console.log(err)
-           return h.response({statusCode: 503, error: "database error", message: "unknown error" }).code(503)
+        }
+        catch (err) {
+          console.log(err);
+          return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
         }
 
-        if(cruise.cruise_hidden && !request.auth.credentials.scope.includes("admin")) {
-          return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to retrieve hidden cruises"}).code(401);
+        if (cruise.cruise_hidden && !request.auth.credentials.scope.includes("admin")) {
+          return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to retrieve hidden cruises" }).code(401);
         }
 
-        let query = {};
-        let startTS = new Date(cruise.start_ts);
-        let stopTS = new Date(cruise.stop_ts);
-
-        // console.log(request.query);
+        const query = {};
 
         //Data source filtering
         if (request.query.datasource) {
 
-          let datasource_query = {};
+          const datasource_query = {};
 
-          if(Array.isArray(request.query.datasource)) {
+          if (Array.isArray(request.query.datasource)) {
             datasource_query.data_source  = { $in: request.query.datasource };
-          } else {
+          }
+          else {
             datasource_query.data_source  = request.query.datasource;
           }
 
           try {
-            const collection = await db.collection(eventAuxDataTable).find(datasource_query, {_id: 0, event_id: 1}).toArray()
+            const collection = await db.collection(eventAuxDataTable).find(datasource_query, { _id: 0, event_id: 1 }).toArray();
 
-            let eventIDs = collection.map(x => x.event_id);
+            const eventIDs = collection.map((x) => x.event_id);
 
-            query._id = { $in: eventIDs};
-          } catch(err) {
-            console.log(err)
-            return h.response({statusCode: 503, error: "database error", message: "unknown error" }).code(503)
+            query._id = { $in: eventIDs };
+          }
+          catch (err) {
+            console.log(err);
+            return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
           }
 
-          if(request.query.author) {
-            if(Array.isArray(request.query.author)) {
+          if (request.query.author) {
+            if (Array.isArray(request.query.author)) {
               query.event_author  = { $in: request.query.author };
-            } else {
+            }
+            else {
               query.event_author  = request.query.author;
             }
           }
 
-          if(request.query.value) {
-            if(Array.isArray(request.query.value)) {
+          if (request.query.value) {
+            if (Array.isArray(request.query.value)) {
 
-              let inList = [];
-              let ninList = [];
+              const inList = [];
+              const ninList = [];
 
-              for( let value of request.query.value ) {
-                if(value.startsWith("!")) {
+              for ( const value of request.query.value ) {
+                if (value.startsWith("!")) {
                   ninList.push(value.substr(1));
-                } else {
+                }
+                else {
                   inList.push(value);
                 }
               }
               
-              if( inList.length > 0 && ninList.length > 0) {
+              if ( inList.length > 0 && ninList.length > 0) {
                 query.event_value  = { $in: inList, $nin: ninList };
-              } else if (inList.length > 0) {
+              }
+              else if (inList.length > 0) {
                 query.event_value  = { $in: inList };
-              } else {
+              }
+              else {
                 query.event_value  = { $nin: ninList };
               }
 
-            } else {
-              if(request.query.value.startsWith("!")) {
+            }
+            else {
+              if (request.query.value.startsWith("!")) {
                 query.event_value  = { $ne: request.query.value.substr(1) };
-              } else {
+              }
+              else {
                 query.event_value  = request.query.value;
               }
             }
           }
 
-          if(request.query.freetext) {
+          if (request.query.freetext) {
 
-            query.event_free_text = { $regex: `${request.query.freetext}`};
+            query.event_free_text = { $regex: `${request.query.freetext}` };
           }
 
           //Time filtering
           if (request.query.startTS) {
-            let tempStartTS = new Date(request.query.startTS);
-            let startTS = (tempStartTS >= startTS && tempStartTS <= cruise.stopTS)? tempStartTS : cruise.startTS;
-            query.ts = { $gte: startTS }
+            const tempStartTS = new Date(request.query.startTS);
+            const startTS = (tempStartTS >= cruise.start_ts && tempStartTS <= cruise.stop_ts) ? tempStartTS : cruise.start_ts;
+            query.ts = { $gte: startTS };
+          }
+          else {
+            query.ts = { $gte: cruise.start_ts };
           }
 
           if (request.query.stopTS) {
-            let tempStopTS = new Date(request.query.stopTS);
-            let stopTS = (tempStopTS >= startTS && tempStopTS <= cruise.stopTS)? tempStopTS : cruise.stopTS;
-            if(query.ts) {
-              query.ts.$lte = stopTS
-            } else { 
-              query.ts = {"$lte": stopTS}
-            }
+            const tempStopTS = new Date(request.query.stopTS);
+            const stopTS = (tempStopTS >= cruise.start_ts && tempStopTS <= cruise.stop_ts) ? tempStopTS : cruise.stop_ts;
+            query.ts.$lte = stopTS;
+          }
+          else {
+            query.ts.$lte = cruise.stop_ts;
           }
 
-          query.ts = {"$gte": startTS , "$lte": stopTS };
-
-          let limit = (request.query.limit)? request.query.limit : 0;
-          let offset = (request.query.offset)? request.query.offset : 0;
+          const limit = (request.query.limit) ? request.query.limit : 0;
+          const offset = (request.query.offset) ? request.query.offset : 0;
 
           // console.log("query:", query);
 
           try {
-            const results = await db.collection(eventsTable).find(query).sort( { ts: 1 } ).skip(offset).limit(limit).toArray()
+            const results = await db.collection(eventsTable).find(query).sort( { ts: 1 } ).skip(offset).limit(limit).toArray();
             // console.log("results:", results);
 
             if (results.length > 0) {
-              let mod_results = results.map(doc => _renameAndClearFields(doc));
+              const mod_results = results.map((doc) => _renameAndClearFields(doc));
               return h.response(mod_results).code(200);
-            } else {
-              return h.response({ "statusCode": 404, 'message': 'No records found'}).code(404);
             }
-          } catch(err) {
-             console.log(err)
-             return h.response({statusCode: 503, error: "database error", message: "unknown error" }).code(503)
+ 
+            return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
+            
           }
-        } else {
+          catch (err) {
+            console.log(err);
+            return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
+          }
+        }
+        else {
 
-          if(request.query.author) {
-            if(Array.isArray(request.query.author)) {
+          if (request.query.author) {
+            if (Array.isArray(request.query.author)) {
               query.event_author  = { $in: request.query.author };
-            } else {
+            }
+            else {
               query.event_author  = request.query.author;
             }
           }
 
-          if(request.query.value) {
-            if(Array.isArray(request.query.value)) {
+          if (request.query.value) {
+            if (Array.isArray(request.query.value)) {
 
-              let inList = [];
-              let ninList = [];
+              const inList = [];
+              const ninList = [];
 
-              for( let value of request.query.value ) {
-                if(value.startsWith("!")) {
+              for ( const value of request.query.value ) {
+                if (value.startsWith("!")) {
                   ninList.push(value.substr(1));
-                } else {
+                }
+                else {
                   inList.push(value);
                 }
               }
 
-              if( inList.length > 0 && ninList.length > 0) {
+              if ( inList.length > 0 && ninList.length > 0) {
                 query.event_value  = { $in: inList, $nin: ninList };
-              } else if (inList.length > 0) {
+              }
+              else if (inList.length > 0) {
                 query.event_value  = { $in: inList };
-              } else {
+              }
+              else {
                 query.event_value  = { $nin: ninList };
               }
 
-            } else {
-              if(request.query.value.startsWith("!")) {
+            }
+            else {
+              if (request.query.value.startsWith("!")) {
                 query.event_value  = { $ne: request.query.value.substr(1) };
-              } else {
+              }
+              else {
                 query.event_value  = request.query.value;
               }
             }
           }
 
-          if(request.query.freetext) {
+          if (request.query.freetext) {
 
-            query.event_free_text = { $regex: `${request.query.freetext}`};
+            query.event_free_text = { $regex: `${request.query.freetext}` };
           }
 
           //Time filtering
           if (request.query.startTS) {
-            let tempStartTS = new Date(request.query.startTS);
-            let startTS = (tempStartTS >= startTS && tempStartTS <= cruise.stopTS)? tempStartTS : cruise.startTS;
-            query.ts = { $gte: startTS }
+            const tempStartTS = new Date(request.query.startTS);
+            const startTS = (tempStartTS >= cruise.start_ts && tempStartTS <= cruise.stop_ts) ? tempStartTS : cruise.start_ts;
+            query.ts = { $gte: startTS };
+          }
+          else {
+            query.ts = { $gte: cruise.start_ts };
           }
 
           if (request.query.stopTS) {
-            let tempStopTS = new Date(request.query.stopTS);
-            let stopTS = (tempStopTS >= startTS && tempStopTS <= cruise.stopTS)? tempStopTS : cruise.stopTS;
-            if(query.ts) {
-              query.ts.$lte = stopTS
-            } else { 
-              query.ts = {"$lte": stopTS}
-            }
+            const tempStopTS = new Date(request.query.stopTS);
+            const stopTS = (tempStopTS >= cruise.start_ts && tempStopTS <= cruise.stop_ts) ? tempStopTS : cruise.stop_ts;
+            query.ts.$lte = stopTS;
+          }
+          else {
+            query.ts.$lte = cruise.stop_ts;
           }
 
-          let limit = (request.query.limit)? request.query.limit : 0;
-          let offset = (request.query.offset)? request.query.offset : 0;
+          const limit = (request.query.limit) ? request.query.limit : 0;
+          const offset = (request.query.offset) ? request.query.offset : 0;
 
           // console.log("query:", query);
 
           try {
-            const results = await db.collection(eventsTable).find(query).sort( { ts: 1  } ).skip(offset).limit(limit).toArray()
+            const results = await db.collection(eventsTable).find(query).sort( { ts: 1  } ).skip(offset).limit(limit).toArray();
             // console.log("results:", results);
 
             if (results.length > 0) {
 
-              let mod_results = results.map(doc => _renameAndClearFields(doc));
+              const mod_results = results.forEach(_renameAndClearFields);
 
-              if(request.query.format && request.query.format == "csv") {
-                converter.json2csv(flattenJSON(mod_results), (err, csv) => {
-                  if(err) {
+
+              if (request.query.format && request.query.format === "csv") {
+                Converter.json2csv(_flattenJSON(mod_results), (err, csv) => {
+
+                  if (err) {
                     throw err;
                   }
+
                   return h.response(csv).code(200);
                 }, json2csvOptions);
-              } else {
+              }
+              else {
                 return h.response(mod_results).code(200);
               }
-            } else {
-              return h.response({ "statusCode": 404, 'message': 'No records found'}).code(404);
             }
-          } catch(err) {
-             console.log(err)
-             return h.response({statusCode: 503, error: "database error", message: "unknown error" }).code(503)
+            else {
+              return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
+            }
+          }
+          catch (err) {
+            console.log(err);
+            return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
           }
         }
       },
@@ -324,7 +354,7 @@ exports.plugin = {
             freetext: Joi.alternatives().try(
               Joi.string(),
               Joi.array().items(Joi.string()).optional()
-            ),
+            )
           }).optional(),
           options: {
             allowUnknown: true
@@ -343,7 +373,7 @@ exports.plugin = {
                   event_option_name: Joi.string(),
                   event_option_value: Joi.string().allow('')
                 })),
-                event_free_text: Joi.string().allow(''),
+                event_free_text: Joi.string().allow('')
               }))
             ),
             400: Joi.object({
@@ -362,10 +392,10 @@ exports.plugin = {
             })
           }
         },
-        description: 'Return the events based on query parameters',
+        description: 'Export the events for a cruise based on the cruise id',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong>, <strong>event_manager</strong>, <strong>event_logger</strong> or <strong>event_watcher</strong></p>',
-        tags: ['events','auth', 'api'],
+        tags: ['events','auth', 'api']
       }
     });
 
@@ -377,222 +407,246 @@ exports.plugin = {
         const db = request.mongo.db;
         const ObjectID = request.mongo.ObjectID;
 
-        let query = {};
         let lowering = null;
 
         try {
-          const loweringResult = await db.collection(loweringsTable).findOne({ _id: ObjectID(request.params.id) })
+          const loweringResult = await db.collection(loweringsTable).findOne({ _id: ObjectID(request.params.id) });
 
-          if(!loweringResult) {
-            return h.response({ "statusCode": 404, 'message': 'No records found'}).code(404);
+          if (!loweringResult) {
+            return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
           }
 
-          if(loweringResult.lowering_hidden && !request.auth.credentials.scope.includes("admin")) {
-            return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to retrieve hidden lowerings"}).code(401);
+          if (!request.auth.credentials.scope.includes('admin')) {
+            if (loweringResult.lowering_hidden || !loweringResult.lowering_access_list.includes(request.auth.credentials.id)) {
+              return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to retrieve this lowering" }).code(401);
+            }
           }
 
           lowering = loweringResult;
 
-        } catch(err) {
-           console.log(err)
-           return h.response({statusCode: 503, error: "database error", message: "unknown error" }).code(503)
         }
+        catch (err) {
+          console.log(err);
+          return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
+        }
+
+        const query = {};
 
         //Data source filtering
         if (request.query.datasource) {
 
-          let datasource_query = {};
+          const datasource_query = {};
 
-          if(Array.isArray(request.query.datasource)) {
+          if (Array.isArray(request.query.datasource)) {
             datasource_query.data_source  = { $in: request.query.datasource };
-          } else {
+          }
+          else {
             datasource_query.data_source  = request.query.datasource;
           }
 
           try {
 
-            const collection = await db.collection(eventAuxDataTable).find(datasource_query, {_id: 0, event_id: 1}).toArray()
-            let eventIDs = collection.map(x => x.event_id);
-            query._id = { $in: eventIDs};
+            const collection = await db.collection(eventAuxDataTable).find(datasource_query, { _id: 0, event_id: 1 }).toArray();
+            const eventIDs = collection.map((x) => x.event_id);
+            query._id = { $in: eventIDs };
 
-          } catch(err) {
-            console.log(err)
-            return h.response({statusCode: 503, error: "database error", message: "unknown error" }).code(503)
+          }
+          catch (err) {
+            console.log(err);
+            return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
           }
 
-          if(request.query.author) {
-            if(Array.isArray(request.query.author)) {
+          if (request.query.author) {
+            if (Array.isArray(request.query.author)) {
               query.event_author  = { $in: request.query.author };
-            } else {
+            }
+            else {
               query.event_author  = request.query.author;
             }
           }
 
-          if(request.query.value) {
-            if(Array.isArray(request.query.value)) {
+          if (request.query.value) {
+            if (Array.isArray(request.query.value)) {
 
-              let inList = [];
-              let ninList = [];
+              const inList = [];
+              const ninList = [];
 
-              for( let value of request.query.value ) {
-                if(value.startsWith("!")) {
+              for ( const value of request.query.value ) {
+                if (value.startsWith("!")) {
                   ninList.push(value.substr(1));
-                } else {
+                }
+                else {
                   inList.push(value);
                 }
               }
               
-              if( inList.length > 0 && ninList.length > 0) {
+              if ( inList.length > 0 && ninList.length > 0) {
                 query.event_value  = { $in: inList, $nin: ninList };
-              } else if (inList.length > 0) {
+              }
+              else if (inList.length > 0) {
                 query.event_value  = { $in: inList };
-              } else {
+              }
+              else {
                 query.event_value  = { $nin: ninList };
               }
 
-            } else {
-              if(request.query.value.startsWith("!")) {
+            }
+            else {
+              if (request.query.value.startsWith("!")) {
                 query.event_value  = { $ne: request.query.value.substr(1) };
-              } else {
+              }
+              else {
                 query.event_value  = request.query.value;
               }
             }
           }
 
-          if(request.query.freetext) {
-            query.event_free_text = { $regex: `${request.query.freetext}`};
+          if (request.query.freetext) {
+            query.event_free_text = { $regex: `${request.query.freetext}` };
           }
 
           //Time filtering
           if (request.query.startTS) {
-            let tempStartTS = new Date(request.query.startTS);
-            // console.log("tempStartTS:", tempStartTS);
-            startTS = (tempStartTS >= lowering.startTS && tempStartTS <= lowering.stopTS)? tempStartTS : lowering.startTS;
-            // console.log("startTS:", startTS);
+            const tempStartTS = new Date(request.query.startTS);
+            const startTS = (tempStartTS >= lowering.start_ts && tempStartTS <= lowering.stop_ts) ? tempStartTS : lowering.start_ts;
+            query.ts = { $gte: startTS };
+          }
+          else {
+            query.ts = { $gte: lowering.start_ts };
           }
 
           if (request.query.stopTS) {
-            let tempStopTS = new Date(request.query.stopTS);
-            // console.log("tempStopTS:", tempStopTS);
-            stopTS = (tempStopTS >= lowering.startTS && tempStopTS <= lowering.stopTS)? tempStopTS : lowering.stopTS;
-            // console.log("stopTS:", stopTS);
+            const tempStopTS = new Date(request.query.stopTS);
+            const stopTS = (tempStopTS >= lowering.start_ts && tempStopTS <= lowering.stop_ts) ? tempStopTS : lowering.stop_ts;
+            query.ts.$lte = stopTS;
+          }
+          else {
+            query.ts.$lte = lowering.stop_ts;
           }
 
-          query.ts = {"$gte": startTS , "$lte": stopTS };
-
-          let limit = (request.query.limit)? request.query.limit : 0;
-          let offset = (request.query.offset)? request.query.offset : 0;
-
-            // console.log("query:", query);
+          const limit = (request.query.limit) ? request.query.limit : 0;
+          const offset = (request.query.offset) ? request.query.offset : 0;
 
           try {
 
-            const results = await db.collection(eventsTable).find(query).sort( { ts: 1 } ).skip(offset).limit(limit).toArray()
+            const results = await db.collection(eventsTable).find(query).sort( { ts: 1 } ).skip(offset).limit(limit).toArray();
 
             if (results.length > 0) {
-              let mod_results = results.map(doc => _renameAndClearFields(doc));
-              return h.response(results).code(200);
-            } else {
-              return h.response({ "statusCode": 404, 'message': 'No records found'}).code(404);
+              const mod_results = results.map((doc) => _renameAndClearFields(doc));
+              return h.response(mod_results).code(200);
             }
-          } catch(err) {
-            console.log(err)
-            return h.response({statusCode: 503, error: "database error", message: "unknown error" }).code(503)
+ 
+            return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
+            
           }
-        } else {
+          catch (err) {
+            console.log(err);
+            return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
+          }
+        }
+        else {
 
-          if(request.query.author) {
-            if(Array.isArray(request.query.author)) {
+          if (request.query.author) {
+            if (Array.isArray(request.query.author)) {
               query.event_author  = { $in: request.query.author };
-            } else {
+            }
+            else {
               query.event_author  = request.query.author;
             }
           }
 
-          if(request.query.value) {
-            if(Array.isArray(request.query.value)) {
+          if (request.query.value) {
+            if (Array.isArray(request.query.value)) {
 
-              let inList = [];
-              let ninList = [];
+              const inList = [];
+              const ninList = [];
 
-              for( let value of request.query.value ) {
-                if(value.startsWith("!")) {
+              for ( const value of request.query.value ) {
+                if (value.startsWith("!")) {
                   ninList.push(value.substr(1));
-                } else {
+                }
+                else {
                   inList.push(value);
                 }
               }
 
-              if( inList.length > 0 && ninList.length > 0) {
+              if ( inList.length > 0 && ninList.length > 0) {
                 query.event_value  = { $in: inList, $nin: ninList };
-              } else if (inList.length > 0) {
+              }
+              else if (inList.length > 0) {
                 query.event_value  = { $in: inList };
-              } else {
+              }
+              else {
                 query.event_value  = { $nin: ninList };
               }
 
-            } else {
-              if(request.query.value.startsWith("!")) {
+            }
+            else {
+              if (request.query.value.startsWith("!")) {
                 query.event_value  = { $ne: request.query.value.substr(1) };
-              } else {
+              }
+              else {
                 query.event_value  = request.query.value;
               }
             }
           }
 
-          if(request.query.freetext) {
+          if (request.query.freetext) {
 
-            query.event_free_text = { $regex: `${request.query.freetext}`};
+            query.event_free_text = { $regex: `${request.query.freetext}` };
           }
 
           //Time filtering
           if (request.query.startTS) {
-            let tempStartTS = new Date(request.query.startTS);
-            let startTS = (tempStartTS >= startTS && tempStartTS <= lowering.stopTS)? tempStartTS : lowering.startTS;
-            query.ts = { $gte: startTS }
+            const tempStartTS = new Date(request.query.startTS);
+            const startTS = (tempStartTS >= lowering.start_ts && tempStartTS <= lowering.stop_ts) ? tempStartTS : lowering.start_ts;
+            query.ts = { $gte: startTS };
+          }
+          else {
+            query.ts = { $gte: lowering.start_ts };
           }
 
           if (request.query.stopTS) {
-            let tempStopTS = new Date(request.query.stopTS);
-            let stopTS = (tempStopTS >= startTS && tempStopTS <= lowering.stopTS)? tempStopTS : lowering.stopTS;
-            if(query.ts) {
-              query.ts.$lte = stopTS
-            } else { 
-              query.ts = {"$lte": stopTS}
-            }
+            const tempStopTS = new Date(request.query.stopTS);
+            const stopTS = (tempStopTS >= lowering.start_ts && tempStopTS <= lowering.stop_ts) ? tempStopTS : lowering.stop_ts;
+            query.ts.$lte = stopTS;
+          }
+          else {
+            query.ts.$lte = lowering.stop_ts;
           }
 
-          // query.ts = {"$gte": startTS , "$lte": stopTS };
-
-          let limit = (request.query.limit)? request.query.limit : 0;
-          let offset = (request.query.offset)? request.query.offset : 0;
-
-          // console.log("query:", query);
+          const limit = (request.query.limit) ? request.query.limit : 0;
+          const offset = (request.query.offset) ? request.query.offset : 0;
 
           try {
-            const results = await db.collection(eventsTable).find(query).sort( { ts: 1  } ).skip(offset).limit(limit).toArray()
+            const results = await db.collection(eventsTable).find(query).sort( { ts: 1  } ).skip(offset).limit(limit).toArray();
             // console.log("results:", results);
 
             if (results.length > 0) {
 
-              let mod_results = results.map(doc => _renameAndClearFields(doc));
+              const mod_results = results.map((doc) => _renameAndClearFields(doc));
 
-              if(request.query.format && request.query.format == "csv") {
-                converter.json2csv(flattenJSON(mod_results), (err, csv) => {
-                  if(err) {
+              if (request.query.format && request.query.format === "csv") {
+                Converter.json2csv(_flattenJSON(mod_results), (err, csv) => {
+
+                  if (err) {
                     throw err;
                   }
+
                   return h.response(csv).code(200);
                 }, json2csvOptions);
-              } else {
+              }
+              else {
                 return h.response(mod_results).code(200);
               }
-            } else {
-              return h.response({ "statusCode": 404, 'message': 'No records found'}).code(404);
             }
-          } catch(err) {
-            console.log(err)
-            return h.response({statusCode: 503, error: "database error", message: "unknown error" }).code(503)
+            else {
+              return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
+            }
+          }
+          catch (err) {
+            console.log(err);
+            return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
           }
         }
       },
@@ -629,7 +683,7 @@ exports.plugin = {
             freetext: Joi.alternatives().try(
               Joi.string(),
               Joi.array().items(Joi.string()).optional()
-            ),
+            )
           }).optional(),
           options: {
             allowUnknown: true
@@ -648,7 +702,7 @@ exports.plugin = {
                   event_option_name: Joi.string(),
                   event_option_value: Joi.string().allow('')
                 })),
-                event_free_text: Joi.string().allow(''),
+                event_free_text: Joi.string().allow('')
               }))
             ),
             400: Joi.object({
@@ -667,10 +721,10 @@ exports.plugin = {
             })
           }
         },
-        description: 'Return the events based on query parameters',
+        description: 'Export the events for a lowering based on the lowering id',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong>, <strong>event_manager</strong>, <strong>event_logger</strong> or <strong>event_watcher</strong></p>',
-        tags: ['events','auth', 'api'],
+        tags: ['events','auth', 'api']
       }
     });
 
@@ -680,80 +734,86 @@ exports.plugin = {
       async handler(request, h) {
 
         const db = request.mongo.db;
-        const ObjectID = request.mongo.ObjectID;
+        // const ObjectID = request.mongo.ObjectID;
 
-        let query = {};
-
-        // console.log(request.query);
+        const query = {};
 
         //Data source filtering
         if (request.query.datasource) {
 
-          let datasource_query = {};
+          const datasource_query = {};
 
-          if(Array.isArray(request.query.datasource)) {
+          if (Array.isArray(request.query.datasource)) {
             datasource_query.data_source  = { $in: request.query.datasource };
-          } else {
+          }
+          else {
             datasource_query.data_source  = request.query.datasource;
           }
 
           try {
 
-            const collection = await db.collection(eventAuxDataTable).find(datasource_query, {_id: 0, event_id: 1}).toArray()
+            const collection = await db.collection(eventAuxDataTable).find(datasource_query, { _id: 0, event_id: 1 }).toArray();
 
-            let eventIDs = collection.map(x => x.event_id);
+            const eventIDs = collection.map((x) => x.event_id);
 
             // console.log("collection:", eventIDs);
 
-            query._id = { $in: eventIDs};
+            query._id = { $in: eventIDs };
 
-          } catch(err) {
-            console.log(err)
-            return h.response({statusCode: 503, error: "database error", message: "unknown error" }).code(503)
+          }
+          catch (err) {
+            console.log(err);
+            return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
           }
 
-          if(request.query.author) {
-            if(Array.isArray(request.query.author)) {
+          if (request.query.author) {
+            if (Array.isArray(request.query.author)) {
               query.event_author  = { $in: request.query.author };
-            } else {
+            }
+            else {
               query.event_author  = request.query.author;
             }
           }
 
-          if(request.query.value) {
-            if(Array.isArray(request.query.value)) {
+          if (request.query.value) {
+            if (Array.isArray(request.query.value)) {
 
-              let inList = [];
-              let ninList = [];
+              const inList = [];
+              const ninList = [];
 
-              for( let value of request.query.value ) {
-                if(value.startsWith("!")) {
+              for ( const value of request.query.value ) {
+                if (value.startsWith("!")) {
                   ninList.push(value.substr(1));
-                } else {
+                }
+                else {
                   inList.push(value);
                 }
               }
               
-              if( inList.length > 0 && ninList.length > 0) {
+              if ( inList.length > 0 && ninList.length > 0) {
                 query.event_value  = { $in: inList, $nin: ninList };
-              } else if (inList.length > 0) {
+              }
+              else if (inList.length > 0) {
                 query.event_value  = { $in: inList };
-              } else {
+              }
+              else {
                 query.event_value  = { $nin: ninList };
               }
 
-            } else {
-              if(request.query.value.startsWith("!")) {
+            }
+            else {
+              if (request.query.value.startsWith("!")) {
                 query.event_value  = { $ne: request.query.value.substr(1) };
-              } else {
+              }
+              else {
                 query.event_value  = request.query.value;
               }
             }
           }
 
-          if(request.query.freetext) {
+          if (request.query.freetext) {
 
-            query.event_free_text = { $regex: `${request.query.freetext}`};
+            query.event_free_text = { $regex: `${request.query.freetext}` };
           }
 
           //Time filtering
@@ -769,74 +829,83 @@ exports.plugin = {
               stopTS = new Date(request.query.stopTS);
             }
 
-            query.ts = {"$gte": startTS , "$lte": stopTS };
+            query.ts = { "$gte": startTS , "$lte": stopTS };
           }
 
-          let limit = (request.query.limit)? request.query.limit : 0;
-          let offset = (request.query.offset)? request.query.offset : 0;
-          let sort = (request.query.sort === "newest")? { ts: -1 } : { ts: 1 };
+          const limit = (request.query.limit) ? request.query.limit : 0;
+          const offset = (request.query.offset) ? request.query.offset : 0;
+          const sort = (request.query.sort === "newest") ? { ts: -1 } : { ts: 1 };
 
           // console.log("query:", query);
 
           try {
-            const results = await db.collection(eventsTable).find(query).sort(sort).skip(offset).limit(limit).toArray()
+            const results = await db.collection(eventsTable).find(query).sort(sort).skip(offset).limit(limit).toArray();
             // console.log("results:", results);
 
             if (results.length > 0) {
               results.forEach(_renameAndClearFields);
               return h.response(results).code(200);
-            } else {
-              return h.response({ "statusCode": 404, 'message': 'No records found'}).code(404);
             }
-          } catch(err) {
-            console.log(err)
-            return h.response({statusCode: 503, error: "database error", message: "unknown error" }).code(503)
+ 
+            return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
+            
+          }
+          catch (err) {
+            console.log(err);
+            return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
           }
 
-        } else {
+        }
+        else {
 
-          if(request.query.author) {
-            if(Array.isArray(request.query.author)) {
+          if (request.query.author) {
+            if (Array.isArray(request.query.author)) {
               query.event_author  = { $in: request.query.author };
-            } else {
+            }
+            else {
               query.event_author  = request.query.author;
             }
           }
 
-          if(request.query.value) {
-            if(Array.isArray(request.query.value)) {
+          if (request.query.value) {
+            if (Array.isArray(request.query.value)) {
 
-              let inList = [];
-              let ninList = [];
+              const inList = [];
+              const ninList = [];
 
-              for( let value of request.query.value ) {
-                if(value.startsWith("!")) {
+              for ( const value of request.query.value ) {
+                if (value.startsWith("!")) {
                   ninList.push(value.substr(1));
-                } else {
+                }
+                else {
                   inList.push(value);
                 }
               }
 
-              if( inList.length > 0 && ninList.length > 0) {
+              if ( inList.length > 0 && ninList.length > 0) {
                 query.event_value  = { $in: inList, $nin: ninList };
-              } else if (inList.length > 0) {
+              }
+              else if (inList.length > 0) {
                 query.event_value  = { $in: inList };
-              } else {
+              }
+              else {
                 query.event_value  = { $nin: ninList };
               }
 
-            } else {
-              if(request.query.value.startsWith("!")) {
+            }
+            else {
+              if (request.query.value.startsWith("!")) {
                 query.event_value  = { $ne: request.query.value.substr(1) };
-              } else {
+              }
+              else {
                 query.event_value  = request.query.value;
               }
             }
           }
 
-          if(request.query.freetext) {
+          if (request.query.freetext) {
 
-            query.event_free_text = { $regex: `${request.query.freetext}`};
+            query.event_free_text = { $regex: `${request.query.freetext}` };
           }
 
           //Time filtering
@@ -852,39 +921,44 @@ exports.plugin = {
               stopTS = new Date(request.query.stopTS);
             }
 
-            query.ts = {"$gte": startTS , "$lte": stopTS };
+            query.ts = { "$gte": startTS , "$lte": stopTS };
           }
 
-          let limit = (request.query.limit)? request.query.limit : 0;
-          let offset = (request.query.offset)? request.query.offset : 0;
-          let sort = (request.query.sort === "newest")? { ts: -1 } : { ts: 1 };
+          const limit = (request.query.limit) ? request.query.limit : 0;
+          const offset = (request.query.offset) ? request.query.offset : 0;
+          const sort = (request.query.sort === "newest") ? { ts: -1 } : { ts: 1 };
 
           // console.log("query:", query);
 
           try {
-            const results = await db.collection(eventsTable).find(query).sort(sort).skip(offset).limit(limit).toArray()
+            const results = await db.collection(eventsTable).find(query).sort(sort).skip(offset).limit(limit).toArray();
             // console.log("results:", results);
 
             if (results.length > 0) {
 
-              let mod_results = results.map(doc => _renameAndClearFields(doc));
+              const mod_results = results.map((doc) => _renameAndClearFields(doc));
 
-              if(request.query.format && request.query.format == "csv") {
-                converter.json2csv(flattenJSON(mod_results), (err, csv) => {
-                  if(err) {
+              if (request.query.format && request.query.format === "csv") {
+                Converter.json2csv(_flattenJSON(mod_results), (err, csv) => {
+
+                  if (err) {
                     throw err;
                   }
+
                   return h.response(csv).code(200);
                 }, json2csvOptions);
-              } else {
+              }
+              else {
                 return h.response(mod_results).code(200);
               }
-            } else {
-              return h.response({ "statusCode": 404, 'message': 'No records found'}).code(404);
             }
-          } catch(err) {
-            console.log(err)
-            return h.response({statusCode: 503, error: "database error", message: "unknown error" }).code(503)
+            else {
+              return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
+            }
+          }
+          catch (err) {
+            console.log(err);
+            return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
           }
         }
       },
@@ -919,7 +993,7 @@ exports.plugin = {
             freetext: Joi.alternatives().try(
               Joi.string(),
               Joi.array().items(Joi.string()).optional()
-            ),
+            )
           }).optional(),
           options: {
             allowUnknown: true
@@ -938,7 +1012,7 @@ exports.plugin = {
                   event_option_name: Joi.string(),
                   event_option_value: Joi.string().allow('')
                 })),
-                event_free_text: Joi.string().allow(''),
+                event_free_text: Joi.string().allow('')
               }))
             ),
             400: Joi.object({
@@ -956,7 +1030,7 @@ exports.plugin = {
         description: 'Return the events based on query parameters',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong>, <strong>event_manager</strong>, <strong>event_logger</strong> or <strong>event_watcher</strong></p>',
-        tags: ['events','auth', 'api'],
+        tags: ['events','auth', 'api']
       }
     });
 
@@ -968,7 +1042,7 @@ exports.plugin = {
         const db = request.mongo.db;
         const ObjectID = request.mongo.ObjectID;
 
-        let query = { _id: ObjectID(request.params.id) };
+        const query = { _id: ObjectID(request.params.id) };
 
         try {
           const result = await db.collection(eventsTable).findOne(query);
@@ -977,11 +1051,12 @@ exports.plugin = {
             return h.response({ "statusCode": 404, 'message': 'No record found for id: ' + request.params.id }).code(404);
           }
 
-          let mod_result = _renameAndClearFields(result);
+          const mod_result = _renameAndClearFields(result);
           return h.response(mod_result).code(200);
-        } catch(err) {
-          console.log(err)
-          return h.response({statusCode: 503, error: "database error", message: "unknown error" }).code(503)
+        }
+        catch (err) {
+          console.log(err);
+          return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
         }
       },
       config: {
@@ -1011,7 +1086,7 @@ exports.plugin = {
                 event_option_name: Joi.string(),
                 event_option_value: Joi.string().allow('')
               })),
-              event_free_text: Joi.string().allow(''),
+              event_free_text: Joi.string().allow('')
             }),
             400: Joi.object({
               statusCode: Joi.number().integer(),
@@ -1030,10 +1105,10 @@ exports.plugin = {
 
           }
         },
-        description: 'Return the events based on event id',
+        description: 'Return an event based on the event id',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong>, <strong>event_manager</strong>, <strong>event_logger</strong> or <strong>event_watcher</strong></p>',
-        tags: ['events','auth','api'],
+        tags: ['events','auth','api']
       }
     });
 
@@ -1047,84 +1122,90 @@ exports.plugin = {
 
         let event = request.payload;
 
-        if(event.id) {
+        if (event.id) {
           try {
             event._id = new ObjectID(event.id);
             delete event.id;
-          } catch(err) {
+          }
+          catch (err) {
             console.log("invalid ObjectID");
-            return h.response({statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters"}).code(400);
+            return h.response({ statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters" }).code(400);
           }
 
-          const result = await db.collection(eventsTable).findOne({_id: event._id});
-          if(result) {
-            return h.response({statusCode:400, error: "duplicate", message: "duplicate event ID"}).code(400);
+          const result = await db.collection(eventsTable).findOne({ _id: event._id });
+          if (result) {
+            return h.response({ statusCode:400, error: "duplicate", message: "duplicate event ID" }).code(400);
           }
         }
 
-        if(!event.ts) {
+        if (!event.ts) {
           event.ts = new Date();
         }
 
-        if(!event.event_options) {
+        if (!event.event_options) {
           event.event_options = [];
-        } else {
+        }
+        else {
           event.event_options = event.event_options.map((event_option) => {
+
             event_option.event_option_name = event_option.event_option_name.toLowerCase().replace(/\s+/g, "_");
             return event_option;
           });
         }
 
-        if(!event.event_free_text) {
+        if (!event.event_free_text) {
           event.event_free_text = "";
         }
 
-        if(event.event_author) {
+        if (event.event_author) {
           try {
-            const result = await db.collection(usersTable).findOne({username: event.event_author})
+            const result = await db.collection(usersTable).findOne({ username: event.event_author });
 
             if (!result) {
-              return h.response({ "statusCode": 401, 'error': 'invalid user', 'message': 'specified user does not exist'}).code(401);
+              return h.response({ "statusCode": 401, 'error': 'invalid user', 'message': 'specified user does not exist' }).code(401);
             }
 
-          } catch(err) {
-            console.log(err)
-            return h.response({statusCode: 503, error: "database error", message: "unknown error" }).code(503)
           }
-        } else {
+          catch (err) {
+            console.log(err);
+            return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
+          }
+        }
+        else {
           try {
-            const result = await db.collection(usersTable).findOne({_id: new ObjectID(request.auth.credentials.id)})
+            const result = await db.collection(usersTable).findOne({ _id: new ObjectID(request.auth.credentials.id) });
             
             if (!result) {
-              return h.response({ "statusCode": 401, 'error': 'invalid user', 'message': 'specified user does not exist'}).code(401);
+              return h.response({ "statusCode": 401, 'error': 'invalid user', 'message': 'specified user does not exist' }).code(401);
             }
 
             event.event_author = result.username;
 
-          } catch(err) {
-            console.log(err)
-            return h.response({statusCode: 503, error: "database error", message: "unknown error" }).code(503)
+          }
+          catch (err) {
+            console.log(err);
+            return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
           }
         }
 
         try {
-          const result = await db.collection(eventsTable).insertOne(event)
+          const result = await db.collection(eventsTable).insertOne(event);
 
-            if (!result) {
-              return h.response({ "statusCode": 400, 'message': 'Bad request'}).code(400);
-            }
+          if (!result) {
+            return h.response({ "statusCode": 400, 'message': 'Bad request' }).code(400);
+          }
 
-            let diff =(new Date().getTime() - event.ts.getTime()) / 1000;
-            // console.log(diff);
-            if(Math.abs(Math.round(diff)) < THRESHOLD) {
-              event = _renameAndClearFields(event);
-              server.publish('/ws/status/newEvents', event);
-            }
+          const diff = (new Date().getTime() - event.ts.getTime()) / 1000;
+          if (Math.abs(Math.round(diff)) < THRESHOLD) {
+            event = _renameAndClearFields(event);
+            server.publish('/ws/status/newEvents', event);
+          }
 
-            return h.response({ n: result.result.n, ok: result.result.ok, insertedCount: result.insertedCount, insertedId: result.insertedId }).code(201);
-        } catch(err) {
-          console.log(err)
-          return h.response({statusCode: 503, error: "database error", message: "unknown error" }).code(503)
+          return h.response({ n: result.result.n, ok: result.result.ok, insertedCount: result.insertedCount, insertedId: result.insertedId }).code(201);
+        }
+        catch (err) {
+          console.log(err);
+          return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
         }
       },
       config: {
@@ -1172,10 +1253,10 @@ exports.plugin = {
           }
         },
 
-        description: 'Create a new event',
+        description: 'Create a new event record',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong>, <strong>event_manager</strong> or <strong>event_logger</strong></p>',
-        tags: ['events','auth','api'],
+        tags: ['events','auth','api']
       }
     });
 
@@ -1187,41 +1268,46 @@ exports.plugin = {
         const db = request.mongo.db;
         const ObjectID = request.mongo.ObjectID;
 
-        let query = {}
+        const query = {};
 
         try {
           query._id = new ObjectID(request.params.id);
-        } catch(err) {
+        }
+        catch (err) {
           console.log("invalid ObjectID");
-          return h.response({statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters"}).code(400);
+          return h.response({ statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters" }).code(400);
         }
 
         let event = null;
         try {
           const result = await db.collection(eventsTable).findOne(query);
 
-          if(!result) {
+          if (!result) {
             return h.response({ "statusCode": 400, "error": "Bad request", 'message': 'No record found for id: ' + request.params.id }).code(400);
           }
 
           event = result;
 
-        } catch(err) {
-          console.log(err)
-          return h.response({statusCode: 503, error: "database error", message: "unknown error" }).code(503)
+        }
+        catch (err) {
+          console.log(err);
+          return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
         }
 
-        if(request.payload.event_options) {
+        if (request.payload.event_options) {
 
           request.payload.event_options = request.payload.event_options.map((event_option) => {
+
             event_option.event_option_name = event_option.event_option_name.toLowerCase().replace(/\s+/g, "_");
             return event_option;
           });
 
           request.payload.event_options.forEach((requestOption) => {
+
             let foundit = false;
             event.event_options.forEach((event_option) => {
-              if(event_option.event_option_name == requestOption.event_option_name) {
+              
+              if (event_option.event_option_name === requestOption.event_option_name) {
                 event_option.event_option_value = requestOption.event_option_value;
                 foundit = true;
               }
@@ -1235,16 +1321,15 @@ exports.plugin = {
 
         try {
 
-          const result = await db.collection(eventsTable).findOneAndUpdate(query, { $set: request.payload },{returnOriginal: false})
-
-          let event = _renameAndClearFields(result.value);
-          server.publish('/ws/status/updateEvents', event);
+          const result = await db.collection(eventsTable).findOneAndUpdate(query, { $set: request.payload },{ returnOriginal: false });
+          server.publish('/ws/status/updateEvents', _renameAndClearFields(result.value));
 
           return h.response(JSON.stringify(result.lastErrorObject)).code(204);
 
-        } catch(err) {
-          console.log(err)
-          return h.response({statusCode: 503, error: "database error", message: "unknown error" }).code(503)
+        }
+        catch (err) {
+          console.log(err);
+          return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
         }
       },
       config: {
@@ -1287,10 +1372,10 @@ exports.plugin = {
             })
           }
         },
-        description: 'Update a event record',
+        description: 'Update an event record',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong>, <strong>event_manager</strong> or <strong>event_logger</strong></p>',
-        tags: ['events','auth','api'],
+        tags: ['events','auth','api']
       }
     });
 
@@ -1302,52 +1387,57 @@ exports.plugin = {
         const db = request.mongo.db;
         const ObjectID = request.mongo.ObjectID;
 
-        let query = {}
+        const query = {};
 
         try {
           query._id = new ObjectID(request.params.id);
-        } catch(err) {
+        }
+        catch (err) {
           console.log("invalid ObjectID");
-          return h.response({statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters"}).code(400);
+          return h.response({ statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters" }).code(400);
         }
 
         let event = null;
 
         try {
-          const result = await db.collection(eventsTable).findOne(query)
+          const result = await db.collection(eventsTable).findOne(query);
 
-          if(!result) {
+          if (!result) {
             return h.response({ "statusCode": 404, 'message': 'No record found for id: ' + request.params.id }).code(404);
           }
 
           event = result;
 
-        } catch(err) {
-          console.log(err)
-          return h.response({statusCode: 503, error: "database error", message: "unknown error" }).code(503)
+        }
+        catch (err) {
+          console.log(err);
+          return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
         }
   
         try {
-          const aux_data_result = await db.collection(eventAuxDataTable).find({ event_id: new ObjectID(request.params.id) }).toArray()
+          const aux_data_result = await db.collection(eventAuxDataTable).find({ event_id: new ObjectID(request.params.id) }).toArray();
 
           event.aux_data = aux_data_result;
-        } catch(err) {
-          console.log(err)
-          return h.response({statusCode: 503, error: "database error", message: "unknown error" }).code(503)
+        }
+        catch (err) {
+          console.log(err);
+          return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
         }
   
         try {
-          const result = await db.collection(eventsTable).findOneAndDelete(query)
-        } catch(err) {
-          console.log(err)
-          return h.response({statusCode: 503, error: "database error", message: "unknown error" }).code(503)
+          await db.collection(eventsTable).findOneAndDelete(query);
+        }
+        catch (err) {
+          console.log(err);
+          return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
         }
 
         try {
-          const result = await db.collection(eventAuxDataTable).deleteMany({ event_id: new ObjectID(request.params.id) })
-        } catch(err) {
-          console.log(err)
-          return h.response({statusCode: 503, error: "database error", message: "unknown error" }).code(503)
+          await db.collection(eventAuxDataTable).deleteMany({ event_id: new ObjectID(request.params.id) });
+        }
+        catch (err) {
+          console.log(err);
+          return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
         }
 
         _renameAndClearFields(event);
@@ -1385,10 +1475,10 @@ exports.plugin = {
             })
           }
         },
-        description: 'Delete an events record',
+        description: 'Delete an event record',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong>, <strong>event_manager</strong> or <strong>event_logger</strong></p>',
-        tags: [ 'events','auth','api'],
+        tags: ['events','auth','api']
       }
     });
 
@@ -1398,23 +1488,23 @@ exports.plugin = {
       async handler(request, h) {
 
         const db = request.mongo.db;
-        const ObjectID = request.mongo.ObjectID;
-
-        // let query = {};
+        // const ObjectID = request.mongo.ObjectID;
 
         try {
-          const result = await db.collection(eventsTable).deleteMany()
-        } catch(err) {
-          console.log(err)
-          return h.response({statusCode: 503, error: "database error", message: "unknown error" }).code(503)
+          await db.collection(eventsTable).deleteMany();
+        }
+        catch (err) {
+          console.log(err);
+          return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
         }
   
         try {
-          const result = await db.collection(eventAuxDataTable).deleteMany()
-          return h.response(result).code(204);
-        } catch(err) {
-          console.log(err)
-          return h.response({statusCode: 503, error: "database error", message: "unknown error" }).code(503)
+          await db.collection(eventAuxDataTable).deleteMany();
+          return h.response().code(204);
+        }
+        catch (err) {
+          console.log(err);
+          return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
         }
       },
       config: {
@@ -1447,7 +1537,7 @@ exports.plugin = {
         description: 'Delete ALL the event records',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong>, <strong>event_manager</strong> or <strong>event_logger</strong></p>',
-        tags: [ 'events','auth','api'],
+        tags: ['events','auth','api']
       }
     });
   }

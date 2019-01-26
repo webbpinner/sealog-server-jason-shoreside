@@ -1,8 +1,7 @@
-'use strict';
-var test = require('assert');
+
 
 const {
-  loweringsTable,
+  loweringsTable
 } = require('../config/db_constants');
 
 exports.plugin = {
@@ -88,32 +87,34 @@ exports.plugin = {
 
     console.log("Searching for Lowerings Collection");
     try {
-      const result = await db.listCollections({name:loweringsTable}).toArray()
-      if(result[0]) {
+      const result = await db.listCollections({ name:loweringsTable }).toArray();
+      if (result[0]) {
         console.log("Lowerings Collection is present... dropping it");
         try {
-          await db.dropCollection(loweringsTable)
-        } catch(err) {
-          console.log("DROP ERROR:", err.code)
-          throw(err)
+          await db.dropCollection(loweringsTable);
+        }
+        catch (err) {
+          console.log("DROP ERROR:", err.code);
+          throw (err);
         }
       }
-    } catch(err) {
-      console.log("LIST ERROR:", err.code)
-      throw(err)
+    }
+    catch (err) {
+      console.log("LIST ERROR:", err.code);
+      throw (err);
     }
 
     try {
       console.log("Creating Lowerings Collection");
-      const collection = await db.createCollection(loweringsTable)
+      const collection = await db.createCollection(loweringsTable);
 
       console.log("Populating Lowerings Collection");
-      await collection.insertMany(test_data)
+      await collection.insertMany(test_data);
 
-      return true
-    } catch(err) {
-      console.log("CREATE ERROR:", err.code)
-      throw(err)
+    }
+    catch (err) {
+      console.log("CREATE ERROR:", err.code);
+      throw (err);
     }
   }
-}
+};

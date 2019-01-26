@@ -1,14 +1,10 @@
-'use strict';
-
-//const nes = require('nes');
-//const Handlers = require('./handlers');
-
 exports.plugin = {
   name: 'routes-ws-events',
   dependencies: ['nes'],
-  register: async (server, options) => {
+  register: (server, options) => {
 
     server.method('publishNewEvent', ( payload ) => {
+
       server.publish('/ws/status/newEvents', payload );
     });
 
@@ -16,6 +12,7 @@ exports.plugin = {
 
     
     server.method('publishUpdateEvent', ( payload ) => {
+
       server.publish('/ws/status/updateEvents', payload );
     });
 
@@ -23,10 +20,11 @@ exports.plugin = {
 
 
     server.method('publishDeleteEvent', ( payload ) => {
+      
       server.publish('/ws/status/deleteEvents', payload );
     });
 
     server.subscription('/ws/status/deleteEvents');
 
   }
-}
+};

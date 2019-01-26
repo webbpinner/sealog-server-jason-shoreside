@@ -1,9 +1,11 @@
-const reCaptchaSecret = ""
+const reCaptchaSecret = "";
 const emailAddress = "";
 const emailPassword = "";
+const resetPasswordURL = "http://localhost/resetPassword/";
 
 module.exports = {
   reCaptchaSecret,
   emailAddress,
-  emailPassword
+  emailPassword,
+  resetPasswordURL
 };

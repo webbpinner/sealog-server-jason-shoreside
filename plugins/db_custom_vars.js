@@ -1,8 +1,7 @@
-'use strict';
-var test = require('assert');
+
 
 const {
-  customVarsTable,
+  customVarsTable
 } = require('../config/db_constants');
 
 exports.plugin = {
@@ -13,41 +12,43 @@ exports.plugin = {
     const db = server.mongo.db;
     const ObjectID = server.mongo.ObjectID;
 
-    const test_data = [
+    const init_data = [
       {
         _id: ObjectID('59810167212b348aed7fa9f5'),
         custom_var_name: 'asnapStatus',
-        custom_var_value: 'Off',
+        custom_var_value: 'Off'
       }
     ];
 
     console.log("Searching for Custom Variable Collection");
     try {
-      const result = await db.listCollections({name:customVarsTable}).toArray()
-      if(result[0]) {
+      const result = await db.listCollections({ name:customVarsTable }).toArray();
+      if (result[0]) {
         console.log("Custom Variable Collection is present... dropping it");
         try {
-          await db.dropCollection(customVarsTable)
-        } catch(err) {
-          console.log("DROP ERROR:", err.code)
-          throw(err)
+          await db.dropCollection(customVarsTable);
+        }
+        catch (err) {
+          console.log("DROP ERROR:", err.code);
+          throw (err);
         }
       }
-    } catch(err) {
-      console.log("LIST ERROR:", err.code)
-      throw(err)
+    }
+    catch (err) {
+      console.log("LIST ERROR:", err.code);
+      throw (err);
     }
 
     try {
       console.log("Creating Custom Variable Collection");
-      const collection = await db.createCollection(customVarsTable)
+      const collection = await db.createCollection(customVarsTable);
 
       console.log("Populating Custom Variable Collection");
-      await collection.insertMany(test_data)
-      return true
-    } catch(err) {
-      console.log("CREATE ERROR:", err.code)
-      throw(err)
+      await collection.insertMany(init_data);
+    }
+    catch (err) {
+      console.log("CREATE ERROR:", err.code);
+      throw (err);
     }
   }
-}
+};

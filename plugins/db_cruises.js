@@ -1,8 +1,7 @@
-'use strict';
-var test = require('assert');
+
 
 const {
-  cruisesTable,
+  cruisesTable
 } = require('../config/db_constants');
 
 exports.plugin = {
@@ -11,27 +10,28 @@ exports.plugin = {
   register: async (server, options) => {
 
     const db = server.mongo.db;
-    const ObjectID = server.mongo.ObjectID;
+    // const ObjectID = server.mongo.ObjectID;
 
     console.log("Searching for Cruises Collection");
     try {
-      const result = await db.listCollections({name:cruisesTable}).toArray()
-      if(result) {
+      const result = await db.listCollections({ name:cruisesTable }).toArray();
+      if (result) {
         console.log("Collection already exists");
-        return true
+        return;
       }
-    } catch(err) {
-      console.log("ERROR:", err.code)
-      throw(err)
+    }
+    catch (err) {
+      console.log("ERROR:", err.code);
+      throw (err);
     }
 
     console.log("Creating Cruises Collection");
     try {
-      const result = await db.createCollection(cruisesTable)
-      return true
-    } catch(err) {
-      console.log("ERROR:", err.code)
-      throw(err)
+      await db.createCollection(cruisesTable);
+    }
+    catch (err) {
+      console.log("ERROR:", err.code);
+      throw (err);
     }
   }
 };

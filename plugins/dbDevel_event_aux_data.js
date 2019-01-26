@@ -1,8 +1,7 @@
-'use strict';
-var test = require('assert');
+
 
 const {
-  eventAuxDataTable,
+  eventAuxDataTable
 } = require('../config/db_constants');
 
 exports.plugin = {
@@ -182,32 +181,34 @@ exports.plugin = {
 
     console.log("Searching for Event Aux Collection");
     try {
-      const result = await db.listCollections({name:eventAuxDataTable}).toArray()
-      if(result[0]) {
+      const result = await db.listCollections({ name:eventAuxDataTable }).toArray();
+      if (result[0]) {
         console.log("Event Aux Collection is present... dropping it");
         try {
-          await db.dropCollection(eventAuxDataTable)
-        } catch(err) {
-          console.log("DROP ERROR:", err.code)
-          throw(err)
+          await db.dropCollection(eventAuxDataTable);
+        }
+        catch (err) {
+          console.log("DROP ERROR:", err.code);
+          throw (err);
         }
       }
-    } catch(err) {
-      console.log("LIST ERROR:", err.code)
-      throw(err)
+    }
+    catch (err) {
+      console.log("LIST ERROR:", err.code);
+      throw (err);
     }
 
     try {
       console.log("Creating Event Aux Collection");
-      const collection = await db.createCollection(eventAuxDataTable)
+      const collection = await db.createCollection(eventAuxDataTable);
 
       console.log("Populating Event Aux Collection");
-      await collection.insertMany(test_data)
+      await collection.insertMany(test_data);
 
-      return true
-    } catch(err) {
-      console.log("CREATE ERROR:", err.code)
-      throw(err)
+    }
+    catch (err) {
+      console.log("CREATE ERROR:", err.code);
+      throw (err);
     }
   }
-}
+};

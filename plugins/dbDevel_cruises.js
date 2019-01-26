@@ -1,8 +1,7 @@
-'use strict';
-var test = require('assert');
+
 
 const {
-  cruisesTable,
+  cruisesTable
 } = require('../config/db_constants');
 
 exports.plugin = {
@@ -25,7 +24,8 @@ exports.plugin = {
         cruise_pi: "Bruce Strickrott",
         cruise_participants: ["Malcom Reynolds", "River Tam", "Inara Serra", "Kaylee Frye", "Hoban Washburn", "Jayne Cobb", "Zoe Washburn", "Simon Tam", "Shepard Book"],
         cruise_tags: ["engineering"],
-        cruise_hidden: false
+        cruise_hidden: false,
+        cruise_access_list: []
       },
       {
         _id: ObjectID('5981f167212b348aed7fa9f6'),
@@ -38,7 +38,8 @@ exports.plugin = {
         cruise_pi: "Eric Cordes",
         cruise_participants: ["Malcom Reynolds", "River Tam", "Inara Serra", "Kaylee Frye", "Hoban Washburn", "Jayne Cobb", "Zoe Washburn", "Simon Tam", "Shepard Book"],
         cruise_tags: ["corals"],
-        cruise_hidden: false
+        cruise_hidden: false,
+        cruise_access_list: []
       },
       {
         _id: ObjectID('5981f167212b348aed7fa9f7'),
@@ -51,38 +52,41 @@ exports.plugin = {
         cruise_pi: "Dave Valentine",
         cruise_participants: [],
         cruise_tags: [],
-        cruise_hidden: true
+        cruise_hidden: true,
+        cruise_access_list: []
       }
     ];
 
     console.log("Searching for Cruises Collection");
     try {
-      const result = await db.listCollections({name:cruisesTable}).toArray()
-      if(result[0]) {
+      const result = await db.listCollections({ name:cruisesTable }).toArray();
+      if (result[0]) {
         console.log("Cruises Collection is present... dropping it");
         try {
-          await db.dropCollection(cruisesTable)
-        } catch(err) {
-          console.log("DROP ERROR:", err.code)
-          throw(err)
+          await db.dropCollection(cruisesTable);
+        }
+        catch (err) {
+          console.log("DROP ERROR:", err.code);
+          throw (err);
         }
       }
-    } catch(err) {
-      console.log("LIST ERROR:", err.code)
-      throw(err)
+    }
+    catch (err) {
+      console.log("LIST ERROR:", err.code);
+      throw (err);
     }
 
     try {
       console.log("Creating Cruises Collection");
-      const collection = await db.createCollection(cruisesTable)
+      const collection = await db.createCollection(cruisesTable);
 
       console.log("Populating Cruises Collection");
-      await collection.insertMany(test_data)
+      await collection.insertMany(test_data);
 
-      return true
-    } catch(err) {
-      console.log("CREATE ERROR:", err.code)
-      throw(err)
+    }
+    catch (err) {
+      console.log("CREATE ERROR:", err.code);
+      throw (err);
     }
   }
-}
+};

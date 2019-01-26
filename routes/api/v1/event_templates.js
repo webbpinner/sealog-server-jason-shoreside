@@ -1,9 +1,9 @@
-'use strict';
+
 
 const Joi = require('joi');
 
 const {
-  eventTemplatesTable,
+  eventTemplatesTable
 } = require('../../../config/db_constants');
 
 const _renameAndClearFields = (doc) => {
@@ -18,7 +18,7 @@ const _renameAndClearFields = (doc) => {
 exports.plugin = {
   name: 'routes-api-event_templates',
   dependencies: ['hapi-mongodb'],
-  register: async (server, options) => {
+  register: (server, options) => {
 
     server.route({
       method: 'GET',
@@ -26,24 +26,25 @@ exports.plugin = {
       async handler(request, h) {
 
         const db = request.mongo.db;
-        const ObjectID = request.mongo.ObjectID;
+        // const ObjectID = request.mongo.ObjectID;
 
-        let limit = (request.query.limit)? request.query.limit : 0;
-        let offset = (request.query.offset)? request.query.offset : 0;
+        const limit = (request.query.limit) ? request.query.limit : 0;
+        const offset = (request.query.offset) ? request.query.offset : 0;
 
         try {
-          const results = await db.collection(eventTemplatesTable).find().skip(offset).limit(limit).toArray()
-          // console.log("results:", results);
+          const results = await db.collection(eventTemplatesTable).find().skip(offset).limit(limit).toArray();
 
           if (results.length > 0) {
             results.forEach(_renameAndClearFields);
             return h.response(results).code(200);
-          } else {
-            return h.response({ "statusCode": 404, 'message': 'No records found'}).code(404);
           }
-        } catch(err) {
-          console.log(err)
-          return h.response({statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503)
+ 
+          return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
+          
+        }
+        catch (err) {
+          console.log(err);
+          return h.response({ statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503);
         }
       },
       config: {
@@ -57,7 +58,7 @@ exports.plugin = {
           },
           query: Joi.object({
             offset: Joi.number().integer().min(0).optional(),
-            limit: Joi.number().integer().min(1).optional(),
+            limit: Joi.number().integer().min(1).optional()
           }).optional(),
           options: {
             allowUnknown: true
@@ -77,8 +78,8 @@ exports.plugin = {
                 event_option_default_value: Joi.string().allow(''),
                 event_option_values: Joi.array().items(Joi.string()),
                 event_option_allow_freeform: Joi.boolean(),
-                event_option_required: Joi.boolean(),
-              })),
+                event_option_required: Joi.boolean()
+              }))
             })),
             400: Joi.object({
               statusCode: Joi.number().integer(),
@@ -95,7 +96,7 @@ exports.plugin = {
         description: 'Return the event templates based on query parameters',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong>, <strong>event_manager</strong> or <strong>event_logger</strong></p>',
-        tags: ['event_templates','auth','api'],
+        tags: ['event_templates','auth','api']
       }
     });
 
@@ -107,25 +108,27 @@ exports.plugin = {
         const db = request.mongo.db;
         const ObjectID = request.mongo.ObjectID;
 
-        let query = {}
+        const query = {};
 
         try {
           query._id = new ObjectID(request.params.id);
-        } catch(err) {
-          return h.response({statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters"}).code(400);
+        }
+        catch (err) {
+          return h.response({ statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters" }).code(400);
         }
 
         try {
-          const result = await db.collection(eventTemplatesTable).findOne(query)
+          const result = await db.collection(eventTemplatesTable).findOne(query);
 
           if (!result) {
             return h.response({ "statusCode": 404, 'message': 'No record found for id: ' + request.params.id }).code(404);
           }
 
           return h.response(_renameAndClearFields(result)).code(200);
-        } catch(err) {
-          console.log(err)
-          return h.response({statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503)
+        }
+        catch (err) {
+          console.log(err);
+          return h.response({ statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503);
         }
       },
       config: {
@@ -158,8 +161,8 @@ exports.plugin = {
                 event_option_default_value: Joi.string().allow(''),
                 event_option_values: Joi.array().items(Joi.string()),
                 event_option_allow_freeform: Joi.boolean(),
-                event_option_required: Joi.boolean(),
-              })),
+                event_option_required: Joi.boolean()
+              }))
             }),
             400: Joi.object({
               statusCode: Joi.number().integer(),
@@ -177,10 +180,10 @@ exports.plugin = {
             })
           }
         },
-        description: 'Return the event templates based on event id',
+        description: 'Return the event template based on the event template id',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong>, <strong>event_manager</strong> or <strong>event_logger</strong></p>',
-        tags: ['event_templates','auth','api'],
+        tags: ['event_templates','auth','api']
       }
     });
 
@@ -192,40 +195,42 @@ exports.plugin = {
         const db = request.mongo.db;
         const ObjectID = request.mongo.ObjectID;
 
-        let event_template = request.payload;
+        const event_template = request.payload;
 
-        if(request.payload.id) {
+        if (request.payload.id) {
           try {
             event_template._id = new ObjectID(request.payload.id);
             delete event_template.id;
-          } catch(err) {
+          }
+          catch (err) {
             console.log("invalid ObjectID");
-            return h.response({statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters"}).code(400);
+            return h.response({ statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters" }).code(400);
           }
         }
 
-        if(!event_template.event_options) {
+        if (!event_template.event_options) {
           event_template.event_options = [];
         }
 
-        if(!event_template.event_free_text_required) {
+        if (!event_template.event_free_text_required) {
           event_template.event_free_text_required = false;
         }
 
         //console.log(event_template);
 
         try {
-          const result = await db.collection(eventTemplatesTable).insertOne(event_template)
+          const result = await db.collection(eventTemplatesTable).insertOne(event_template);
 
           if (!result) {
-            return h.response({ "statusCode": 400, 'message': 'Bad request'}).code(400);
+            return h.response({ "statusCode": 400, 'message': 'Bad request' }).code(400);
           }
 
           return h.response({ n: result.result.n, ok: result.result.ok, insertedCount: result.insertedCount, insertedId: result.insertedId }).code(201);
 
-        } catch(err) {
-          console.log(err)
-          return h.response({statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503)
+        }
+        catch (err) {
+          console.log(err);
+          return h.response({ statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503);
         }
       },
       config: {
@@ -249,8 +254,8 @@ exports.plugin = {
               event_option_default_value: Joi.string().allow("").optional(),
               event_option_values: Joi.array().items(Joi.string()).required(),
               event_option_allow_freeform: Joi.boolean().required(),
-              event_option_required: Joi.boolean().required(),
-            })).optional(),
+              event_option_required: Joi.boolean().required()
+            })).optional()
           },
           options: {
             allowUnknown: true
@@ -280,7 +285,7 @@ exports.plugin = {
         description: 'Create a new event template',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong>, <strong>event_manager</strong> or <strong>event_logger</strong></p>',
-        tags: ['event_templates','auth','api'],
+        tags: ['event_templates','auth','api']
       }
     });
 
@@ -292,31 +297,34 @@ exports.plugin = {
         const db = request.mongo.db;
         const ObjectID = request.mongo.ObjectID;
 
-        let query = {}
+        const query = {};
 
         try {
           query._id = new ObjectID(request.params.id);
-        } catch(err) {
-          return h.response({statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters"}).code(400);
+        }
+        catch (err) {
+          return h.response({ statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters" }).code(400);
         }
 
         try {
-          const result = await db.collection(eventTemplatesTable).findOne(query)
+          const result = await db.collection(eventTemplatesTable).findOne(query);
 
-          if(!result) {
+          if (!result) {
             return h.response({ "statusCode": 400, "error": "Bad request", 'message': 'No record found for id: ' + request.params.id }).code(400);
           }
-        } catch(err) {
-          console.log(err)
-          return h.response({statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503)
+        }
+        catch (err) {
+          console.log(err);
+          return h.response({ statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503);
         }
 
         try {
-          const result = await db.collection(eventTemplatesTable).updateOne(query, { $set: request.payload })
+          const result = await db.collection(eventTemplatesTable).updateOne(query, { $set: request.payload });
           return h.response(result).code(204);
-        } catch(err) {
-          console.log(err)
-          return h.response({statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503)
+        }
+        catch (err) {
+          console.log(err);
+          return h.response({ statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503);
         }
       },
       config: {
@@ -342,8 +350,8 @@ exports.plugin = {
               event_option_default_value: Joi.string().allow('').optional(),
               event_option_values: Joi.array().items(Joi.string()).required(),
               event_option_allow_freeform: Joi.boolean().required(),
-              event_option_required: Joi.boolean().required(),
-            })).optional(),
+              event_option_required: Joi.boolean().required()
+            })).optional()
           }).required().min(1),
           options: {
             allowUnknown: true
@@ -363,10 +371,10 @@ exports.plugin = {
             })
           }
         },
-        description: 'Update a event definition record',
+        description: 'Update an event template record',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong>, <strong>event_manager</strong> or <strong>event_logger</strong></p>',
-        tags: ['event_templates','auth','api'],
+        tags: ['event_templates','auth','api']
       }
     });
 
@@ -378,34 +386,37 @@ exports.plugin = {
         const db = request.mongo.db;
         const ObjectID = request.mongo.ObjectID;
 
-        let query = {}
+        const query = {};
 
         try {
           query._id = new ObjectID(request.params.id);
-        } catch(err) {
-          return h.response({statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters"}).code(400);
+        }
+        catch (err) {
+          return h.response({ statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters" }).code(400);
         }
 
         try {
-          const result = await db.collection(eventTemplatesTable).findOne(query)
-          if(!result) {
+          const result = await db.collection(eventTemplatesTable).findOne(query);
+          if (!result) {
             return h.response({ "statusCode": 404, 'message': 'No record found for id: ' + request.params.id }).code(404);
           }
 
           if (result.system_template && !request.auth.credentials.scope.includes('admin')) {
-            return h.response({"statusCode": 401, 'error': 'Unauthorized', 'message': 'user does not have permission to delete system templates'}).code(401);
+            return h.response({ "statusCode": 401, 'error': 'Unauthorized', 'message': 'user does not have permission to delete system templates' }).code(401);
           }
 
           try {
-            const result = await db.collection(eventTemplatesTable).deleteOne(query)
+            await db.collection(eventTemplatesTable).deleteOne(query);
             return h.response(result).code(204);
-          } catch(err) {
-            console.log(err)
-            return h.response({statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503)
           }
-        } catch(err) {
-          console.log(err)
-          return h.response({statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503)
+          catch (err) {
+            console.log(err);
+            return h.response({ statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503);
+          }
+        }
+        catch (err) {
+          console.log(err);
+          return h.response({ statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503);
         }
       },
       config: {
@@ -441,7 +452,7 @@ exports.plugin = {
         description: 'Delete an event templates record',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong>, <strong>event_manager</strong> or <strong>event_logger</strong></p>',
-        tags: [ 'event_templates','auth','api'],
+        tags: ['event_templates','auth','api']
       }
     });
   }

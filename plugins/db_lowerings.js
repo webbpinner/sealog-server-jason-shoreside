@@ -1,8 +1,7 @@
-'use strict';
-var test = require('assert');
+
 
 const {
-  loweringsTable,
+  loweringsTable
 } = require('../config/db_constants');
 
 exports.plugin = {
@@ -11,27 +10,28 @@ exports.plugin = {
   register: async (server, options) => {
 
     const db = server.mongo.db;
-    const ObjectID = server.mongo.ObjectID;
+    // const ObjectID = server.mongo.ObjectID;
 
     console.log("Searching for Lowerings Collection");
     try {
-      const result = await db.listCollections({name:loweringsTable}).toArray()
-      if(result) {
-        console.log("Collection already exists");
-        return true
+      const result = await db.listCollections({ name:loweringsTable }).toArray();
+      if (result) {
+        console.log("Collection already exists... we're done here.");
+        return;
       }
-    } catch(err) {
-      console.log("ERROR:", err.code)
-      throw(err)
+    }
+    catch (err) {
+      console.log("ERROR:", err.code);
+      throw (err);
     }
 
     console.log("Creating Lowerings Collection");
     try {
-      const result = await db.createCollection(loweringsTable)
-      return true
-    } catch(err) {
-      console.log("ERROR:", err.code)
-      throw(err)
+      await db.createCollection(loweringsTable);
+    }
+    catch (err) {
+      console.log("ERROR:", err.code);
+      throw (err);
     }
   }
 };

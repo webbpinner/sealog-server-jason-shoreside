@@ -1,45 +1,79 @@
-'use strict';
+
 
 const Joi = require('joi');
-const fs = require('fs');
-const tmp = require('tmp');
-const path = require('path');
+const Fs = require('fs');
+const Tmp = require('tmp');
+const Path = require('path');
 
 const {
-  LOWERING_PATH,
+  LOWERING_PATH
 } = require('../../../config/path_constants');
 
 const {
   loweringsTable,
+  cruisesTable
 } = require('../../../config/db_constants');
 
-const rmDir = (dirPath) => {
-  try { var files = fs.readdirSync(dirPath); }
-  catch(e) { return; }
-  if (files.length > 0)
-    for (var i = 0; i < files.length; i++) {
-      var filePath = dirPath + '/' + files[i];
-      if (fs.statSync(filePath).isFile())
-        fs.unlinkSync(filePath);
-      else
-        rmDir(filePath);
+const _rmDir = (dirPath) => {
+
+  try {
+    const files = Fs.readdirSync(dirPath); 
+
+    if (files.length > 0) {
+      for (let i = 0; i < files.length; ++i) {
+        const filePath = dirPath + '/' + files[i];
+        if (Fs.statSync(filePath).isFile()) {
+          Fs.unlinkSync(filePath);
+        }
+        else {
+          _rmDir(filePath);
+        }
+      }
     }
-  fs.rmdirSync(dirPath);
+  }
+  catch (err) {
+    console.log(err);
+    throw err; 
+  }
+
+  try {
+    Fs.rmdirSync(dirPath);
+  }
+  catch (err) {
+    console.log(err);
+    throw err;
+  }
 };
 
-const mvFilesToDir = (sourceDirPath, destDirPath) => {
-  try { var files = fs.readdirSync(sourceDirPath); }
-  catch(e) { return; }
-  if (files.length > 0)
-    for (var i = 0; i < files.length; i++) {
-      var sourceFilePath = sourceDirPath + '/' + files[i];
-      var destFilePath = destDirPath + '/' + files[i];
-      if (fs.statSync(sourceFilePath).isFile())
-        fs.renameSync(sourceFilePath, destFilePath);
-      else
-        mvFilesToDir(sourceFilePath, destFilePath);
+const _mvFilesToDir = (sourceDirPath, destDirPath) => {
+
+  try {
+    const files = Fs.readdirSync(sourceDirPath); 
+    if (files.length > 0) {
+      for (let i = 0; i < files.length; ++i) {
+        const sourceFilePath = sourceDirPath + '/' + files[i];
+        const destFilePath = destDirPath + '/' + files[i];
+        if (Fs.statSync(sourceFilePath).isFile()) {
+          Fs.renameSync(sourceFilePath, destFilePath);
+        }
+        else {
+          _mvFilesToDir(sourceFilePath, destFilePath);
+        }
+      }
     }
-  fs.rmdirSync(sourceDirPath);
+  }
+  catch (err) {
+    console.log(err);
+    throw err;
+  }
+
+  try {
+    Fs.rmdirSync(sourceDirPath);
+  }
+  catch (err) {
+    console.log(err);
+    throw err;
+  }
 };
 
 const _renameAndClearFields = (doc) => {
@@ -60,7 +94,7 @@ const _renameAndClearFields = (doc) => {
 exports.plugin = {
   name: 'routes-api-lowerings',
   dependencies: ['hapi-mongodb'],
-  register: async (server, options) => {
+  register: (server, options) => {
 
     server.route({
       method: 'GET',
@@ -70,22 +104,32 @@ exports.plugin = {
         const db = request.mongo.db;
         const ObjectID = request.mongo.ObjectID;
 
-        let query = {};
+        const query = {};
 
         //Hiddle filtering
-        if (typeof(request.query.hidden) !== "undefined"){
-          if(request.query.hidden && !request.auth.credentials.scope.includes('admin')) {
-            return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to retrieve hidden lowerings"}).code(401);
+        if (typeof (request.query.hidden) !== "undefined"){
+          if (request.query.hidden && !request.auth.credentials.scope.includes('admin')) {
+            return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to retrieve hidden lowerings" }).code(401);
           }
+
           query.lowering_hidden = request.query.hidden;
-        } else if(!request.auth.credentials.scope.includes('admin')) {
+        }
+        else if (!request.auth.credentials.scope.includes('admin')) {
+          const user_id = request.auth.credentials.id;
           query.lowering_hidden = false;
+          query.lowering_access_list = user_id;
         }
 
-        // Cruise ID filtering... if using this then there's no reason to use other filters
+        // Lowering ID filtering... if using this then there's no reason to use other filters
         if (request.query.lowering_id) {
-          query.lowering_id = request.query.lowering_id;
-        } else {
+          try {
+            query.lowering_id = new ObjectID(request.query.lowering_id);
+          }
+          catch (err) {
+            return h.response({ statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters" }).code(400);
+          }
+        }
+        else {
 
           //Time filtering
           if ((request.query.startTS) || (request.query.stopTS)) {
@@ -100,36 +144,39 @@ exports.plugin = {
               stopTS = new Date(request.query.stopTS);
             }
 
-            query.ts = {"$gte": startTS , "$lt": stopTS };
+            query.ts = { "$gte": startTS , "$lt": stopTS };
           }
         }
 
-        let limit = (request.query.limit)? request.query.limit : 0;
-        let offset = (request.query.offset)? request.query.offset : 0;
+        const limit = (request.query.limit) ? request.query.limit : 0;
+        const offset = (request.query.offset) ? request.query.offset : 0;
 
         try {
-          const results = await db.collection(loweringsTable).find(query).sort( { start_ts: -1 } ).skip(offset).limit(limit).toArray()
-          // console.log("results:", results);
+          const lowerings = await db.collection(loweringsTable).find(query).sort( { start_ts: -1 } ).skip(offset).limit(limit).toArray();
 
-          if (results.length > 0) {
+          if (lowerings.length > 0) {
 
-            let mod_results = results.map((result) => {
+            const mod_lowerings = lowerings.map((result) => {
+
               try {
-                result.lowering_files = fs.readdirSync(LOWERING_PATH + '/' + result._id);
-              } catch(error) {
+                result.lowering_files = Fs.readdirSync(LOWERING_PATH + '/' + result._id);
+              }
+              catch (error) {
                 result.lowering_files = [];
               }
-              return result;
+
+              return _renameAndClearFields(result);
             });
 
-            mod_results.forEach(_renameAndClearFields);
-            return h.response(mod_results).code(200);
-          } else {
-            return h.response({ "statusCode": 404, 'message': 'No records found'}).code(404);
+            return h.response(mod_lowerings).code(200);
           }
-        } catch (err) {
+ 
+          return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
+          
+        }
+        catch (err) {
           console.log("ERROR:", err);
-          return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);
+          return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);
         }
       },
       config: {
@@ -146,7 +193,7 @@ exports.plugin = {
             startTS: Joi.date().iso(),
             stopTS: Joi.date().iso(),
             offset: Joi.number().integer().min(0).optional(),
-            limit: Joi.number().integer().min(1).optional(),
+            limit: Joi.number().integer().min(1).optional()
           }).optional(),
           options: {
             allowUnknown: true
@@ -164,6 +211,7 @@ exports.plugin = {
               lowering_tags: Joi.array().items(Joi.string().allow('')),
               lowering_location: Joi.string().allow(''),
               lowering_hidden: Joi.boolean(),
+              lowering_access_list: Joi.array().items(Joi.string())
             })),
             400: Joi.object({
               statusCode: Joi.number().integer(),
@@ -180,7 +228,7 @@ exports.plugin = {
         description: 'Return the lowerings based on query parameters',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong></p>',
-        tags: ['lowerings','auth','api'],
+        tags: ['lowerings','auth','api']
       }
     });
 
@@ -192,31 +240,46 @@ exports.plugin = {
         const db = request.mongo.db;
         const ObjectID = request.mongo.ObjectID;
 
-        let query = { _id: new ObjectID(request.params.id) };
+        const query = {};
 
         try {
-          const result = await db.collection(loweringsTable).findOne(query)
+          query._id = new ObjectID(request.params.id);
+        }
+        catch (err) {
+          return h.response({ statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters" }).code(400);
+        }
+
+        let lowering = null;
+
+        try {
+          const result = await db.collection(loweringsTable).findOne(query);
           if (!result) {
             return h.response({ "statusCode": 404, 'message': 'No record found for id: ' + request.params.id }).code(404);
           }
 
-          if (result.lowering_hidden && !request.auth.credentials.scope.includes('admin')) {
-            return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to retrieve hidden lowerings"}).code(401);
+          if (!request.auth.credentials.scope.includes('admin')) {
+            if (result.lowering_hidden || !result.lowering_access_list.includes(request.auth.credentials.id)) {
+              return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to retrieve this lowering" }).code(401);
+            }
           }
 
-          let mod_result = result
-          try {
-            mod_result.lowering_files = fs.readdirSync(LOWERING_PATH + '/' + request.params.id);
-          } catch(error) {
-            mod_result.lowering_files = [];
-          }
-
-          mod_result = _renameAndClearFields(result);
-          return h.response(mod_result).code(200);
-        } catch (err) {
-          console.log("ERROR:", err);
-          return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);
+          lowering = result;
+        
         }
+        catch (err) {
+          console.log("ERROR:", err);
+          return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);
+        }
+
+        try {
+          lowering.lowering_files = Fs.readdirSync(LOWERING_PATH + '/' + request.params.id);
+        }
+        catch (error) {
+          lowering.lowering_files = [];
+        }
+
+        lowering = _renameAndClearFields(lowering);
+        return h.response(lowering).code(200);
       },
       config: {
         auth:{
@@ -246,6 +309,7 @@ exports.plugin = {
               lowering_tags: Joi.array().items(Joi.string().allow('')),
               lowering_location: Joi.string().allow(''),
               lowering_hidden: Joi.boolean(),
+              lowering_access_list: Joi.array().items(Joi.string())
             }),
             400: Joi.object({
               statusCode: Joi.number().integer(),
@@ -266,7 +330,7 @@ exports.plugin = {
         description: 'Return the lowering based on lowering id',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong></p>',
-        tags: ['lowerings','auth','api'],
+        tags: ['lowerings','auth','api']
       }
     });
 
@@ -278,14 +342,15 @@ exports.plugin = {
         const db = request.mongo.db;
         const ObjectID = request.mongo.ObjectID;
 
-        let lowering = request.payload;
+        const lowering = request.payload;
 
-        if(request.payload.id) {
+        if (request.payload.id) {
           try {
             lowering._id = new ObjectID(request.payload.id);
             delete lowering.id;
-          } catch(err) {
-            return h.response({statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters"}).code(400);
+          }
+          catch (err) {
+            return h.response({ statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters" }).code(400);
           }
         }
 
@@ -293,19 +358,33 @@ exports.plugin = {
           const result = await db.collection(loweringsTable).insertOne(lowering);
 
           if (!result) {
-            return h.response({ "statusCode": 400, 'message': 'Bad request'}).code(400);
+            return h.response({ "statusCode": 400, 'message': 'Bad request' }).code(400);
           }
 
           try {
-            fs.mkdirSync(LOWERING_PATH + '/' + result.insertedId);
-          } catch(err) {
-            console.log(err);
+            Fs.mkdirSync(LOWERING_PATH + '/' + result.insertedId);
+          }
+          catch (err) {
+            console.log("ERROR:", err);
+          }
+
+          const cruiseQuery = { start_ts: { "$lte": new Date(lowering.start_ts) }, stop_ts: { "$gte": new Date(lowering.stop_ts) } };
+          try {
+            const cruiseResult = await db.collection(cruisesTable).findOne(cruiseQuery);
+
+            if (cruiseResult && cruiseResult.cruise_access_list.length > 0) {
+              await db.collection(loweringsTable).updateOne( { _id: result.insertedId }, { $push: { lowering_access_list: { $each: cruiseResult.cruise_access_list } } });
+            }
+          }
+          catch (err) {
+            console.log("ERROR:", err);
           }
 
           return h.response({ n: result.result.n, ok: result.result.ok, insertedCount: result.insertedCount, insertedId: result.insertedId }).code(201);
-        } catch (err) {
+        }
+        catch (err) {
           console.log("ERROR:", err);
-          return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);
+          return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);
         }
       },
       config: {
@@ -326,6 +405,7 @@ exports.plugin = {
             lowering_tags: Joi.array().items(Joi.string().allow('')).required(),
             lowering_location: Joi.string().allow('').required(),
             lowering_hidden: Joi.boolean().required(),
+            lowering_access_list: Joi.array().items(Joi.string()).required()
           },
           options: {
             allowUnknown: true
@@ -355,7 +435,7 @@ exports.plugin = {
         description: 'Create a new event template',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong></p>',
-        tags: ['lowerings','auth','api'],
+        tags: ['lowerings','auth','api']
       }
     });
 
@@ -367,44 +447,58 @@ exports.plugin = {
         const db = request.mongo.db;
         const ObjectID = request.mongo.ObjectID;
 
-        let query = { _id: new ObjectID(request.params.id) };
+        const query = {};
+
+        try {
+          query._id = new ObjectID(request.params.id);
+        }
+        catch (err) {
+          return h.response({ statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters" }).code(400);
+        }
 
         try {
 
-          const result = await db.collection(loweringsTable).findOne(query)
+          const result = await db.collection(loweringsTable).findOne(query);
 
-          if(!result) {
+          if (!result) {
             return h.response({ "statusCode": 400, "error": "Bad request", 'message': 'No record found for id: ' + request.params.id }).code(400);
           }
-        } catch (err) {
+
+          if (!request.auth.credentials.scope.includes('admin')) {
+            if (result.lowering_hidden || !result.lowering_access_list.includes(request.auth.credentials.id)) {
+              return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to edit this lowering" }).code(401);
+            }
+          }
+
+        }
+        catch (err) {
           console.log("ERROR:", err);
-          return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);
+          return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);
         }
 
-        if(request.payload.lowering_files) {
+        if (request.payload.lowering_files) {
           //move files from tmp directory to permanent directory
           try {
             request.payload.lowering_files.map((file) => {
-              // console.log("move files from", path.join(tmp.tmpdir,file), "to", path.join(LOWERING_PATH, request.params.id));
-              mvFilesToDir(path.join(tmp.tmpdir,file), path.join(LOWERING_PATH, request.params.id));
+              // console.log("move files from", Path.join(Tmp.tmpdir,file), "to", Path.join(LOWERING_PATH, request.params.id));
+              _mvFilesToDir(Path.join(Tmp.tmpdir,file), Path.join(LOWERING_PATH, request.params.id));
             });
-          } catch(err) {
+          }
+          catch (err) {
             // console.log(err)
-            return h.response({ "statusCode": 503, "error": "File Error", 'message': 'unabled to upload files. Verify directory ' + path.join(LOWERING_PATH, request.params.id) + ' exists'  }).code(503);
+            return h.response({ "statusCode": 503, "error": "File Error", 'message': 'unabled to upload files. Verify directory ' + Path.join(LOWERING_PATH, request.params.id) + ' exists'  }).code(503);
           }
           
           delete request.payload.lowering_files;
         }
 
         try {
-
-          const result = await db.collection(loweringsTable).updateOne(query, { $set: request.payload })
-
-            return h.response(result).code(204);
-
-        } catch (err) {
+          const result = await db.collection(loweringsTable).updateOne(query, { $set: request.payload });
+          return h.response(result).code(204);
+        }
+        catch (err) {
           console.log("ERROR:", err);
-          return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);
+          return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);
         }
       },
       config: {
@@ -428,6 +522,7 @@ exports.plugin = {
             lowering_location: Joi.string().allow('').optional(),
             lowering_hidden: Joi.boolean().optional(),
             lowering_files: Joi.array().items(Joi.string()).optional(),
+            lowering_access_list: Joi.array().items(Joi.string()).optional()
           }).required().min(1),
           options: {
             allowUnknown: true
@@ -450,7 +545,7 @@ exports.plugin = {
         description: 'Update a lowering record',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong></p>',
-        tags: ['lowerings','auth','api'],
+        tags: ['lowerings','auth','api']
       }
     });
 
@@ -462,24 +557,26 @@ exports.plugin = {
         const db = request.mongo.db;
         const ObjectID = request.mongo.ObjectID;
 
-        let query = { _id: new ObjectID(request.params.id) };
+        const query = { _id: new ObjectID(request.params.id) };
 
         try {
-          const result = await db.collection(loweringsTable).findOne(query)
-          if(!result) {
+          const result = await db.collection(loweringsTable).findOne(query);
+          if (!result) {
             return h.response({ "statusCode": 404, 'message': 'No record found for id: ' + request.params.id }).code(404);
           }
-        } catch (err) {
+        }
+        catch (err) {
           console.log("ERROR:", err);
-          return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);
+          return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);
         }
 
         try {
-          const result = await db.collection(loweringsTable).deleteOne(query)
+          const result = await db.collection(loweringsTable).deleteOne(query);
           return h.response(result).code(204);
-        } catch (err) {
+        }
+        catch (err) {
           console.log("ERROR:", err);
-          return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);
+          return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);
         }
       },
       config: {
@@ -515,7 +612,7 @@ exports.plugin = {
         description: 'Delete a lowering record',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong></p>',
-        tags: [ 'lowerings','auth','api'],
+        tags: ['lowerings','auth','api']
       }
     });
 
@@ -525,25 +622,29 @@ exports.plugin = {
       async handler(request, h) {
 
         const db = request.mongo.db;
-        const ObjectID = request.mongo.ObjectID;
+        // const ObjectID = request.mongo.ObjectID;
 
-        let query = { };
+        const query = { };
 
         try {
-          const result = await db.collection(loweringsTable).deleteMany(query)
+          const result = await db.collection(loweringsTable).deleteMany(query);
 
           try {
-            rmDir(LOWERING_PATH);
-            if (!fs.existsSync(LOWERING_PATH)) fs.mkdirSync(LOWERING_PATH);
-          } catch(err) {
+            _rmDir(LOWERING_PATH);
+            if (!Fs.existsSync(LOWERING_PATH)) {
+              Fs.mkdirSync(LOWERING_PATH);
+            }
+          }
+          catch (err) {
             console.log("ERROR:", err);
-            return h.response({statusCode: 503, error: "filesystem error", message: "unable to delete lowering files"}).code(503);  
+            return h.response({ statusCode: 503, error: "filesystem error", message: "unable to delete lowering files" }).code(503);  
           }
 
           return h.response(result).code(204);
-        } catch (err) {
+        }
+        catch (err) {
           console.log("ERROR:", err);
-          return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);
+          return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);
         }
       },
       config: {
@@ -573,10 +674,10 @@ exports.plugin = {
             })
           }
         },
-        description: 'Delete a lowering record',
+        description: 'Delete ALL lowering records',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong></p>',
-        tags: [ 'lowerings','auth','api'],
+        tags: ['lowerings','auth','api']
       }
     });
   }

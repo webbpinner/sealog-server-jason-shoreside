@@ -1,5 +1,3 @@
-'use strict';
-
 const Joi = require('joi');
 
 const {
@@ -21,154 +19,169 @@ const _renameAndClearFields = (doc) => {
 exports.plugin = {
   name: 'routes-api-event_aux_data',
   dependencies: ['hapi-mongodb'],
-  register: async (server, options) => {
+  register: (server, options) => {
 
     server.route({
       method: 'GET',
       path: '/event_aux_data/bycruise/{id}',
       async handler(request, h) {
+        
         const db = server.mongo.db;
         const ObjectID = server.mongo.ObjectID;
 
-        let cruise = null
+        let cruise = null;
 
         try {
-          const cruiseResult = await db.collection(cruisesTable).findOne({ _id: ObjectID(request.params.id) })
+          const cruiseResult = await db.collection(cruisesTable).findOne({ _id: ObjectID(request.params.id) });
 
-          if(!cruise) {
-            return h.response({ "statusCode": 404, "message": "cruise not found for that id"}).code(404);          
+          if (!cruiseResult) {
+            return h.response({ "statusCode": 404, "message": "cruise not found for that id" }).code(404);          
+          }
+
+          if (!request.auth.credentials.scope.includes('admin')) {
+            if (cruiseResult.cruise_hidden || !cruiseResult.cruise_access_list.includes(request.auth.credentials.id)) {
+              return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to retrieve this cruise" }).code(401);
+            }
           }
 
           cruise = cruiseResult;
 
-        } catch (err) {
+        }
+        catch (err) {
           console.log("ERROR:", err);
-          return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);
+          return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);
         }
 
-        if(cruise.cruise_hidden && !request.auth.credentials.scope.includes("admin")) {
-          return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to retrieve hidden cruises"}).code(401);
+        if (cruise.cruise_hidden && !request.auth.credentials.scope.includes("admin")) {
+          return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to retrieve hidden cruises" }).code(401);
         }
 
-        let query = {};
-        let startTS = new Date(cruise.start_ts);
-        let stopTS = new Date(cruise.stop_ts);
+        const query = {};
 
-        let eventQuery = {};
+        const eventQuery = {};
 
-        if(request.query.author) {
-          if(Array.isArray(request.query.author)) {
+        if (request.query.author) {
+          if (Array.isArray(request.query.author)) {
             eventQuery.event_author  = { $in: request.query.author };
-          } else {
+          }
+          else {
             eventQuery.event_author  = request.query.author;
           }
         }
 
-        if(request.query.value) {
-          if(Array.isArray(request.query.value)) {
+        if (request.query.value) {
+          if (Array.isArray(request.query.value)) {
 
-            let inList = [];
-            let ninList = [];
+            const inList = [];
+            const ninList = [];
 
-            for( let value of request.query.value ) {
-              if(value.startsWith("!")) {
+            for ( const value of request.query.value ) {
+              if (value.startsWith("!")) {
                 ninList.push(value.substr(1));
-              } else {
+              }
+              else {
                 inList.push(value);
               }
             }
             
-            if( inList.length > 0 && ninList.length > 0) {
+            if ( inList.length > 0 && ninList.length > 0) {
               eventQuery.event_value  = { $in: inList, $nin: ninList };
-            } else if (inList.length > 0) {
+            }
+            else if (inList.length > 0) {
               eventQuery.event_value  = { $in: inList };
-            } else {
+            }
+            else {
               eventQuery.event_value  = { $nin: ninList };
             }
 
-          } else {
-            if(request.query.value.startsWith("!")) {
+          }
+          else {
+            if (request.query.value.startsWith("!")) {
               eventQuery.event_value  = { $ne: request.query.value.substr(1) };
-            } else {
+            }
+            else {
               eventQuery.event_value  = request.query.value;
             }
           }
         }
 
-        if(request.query.freetext) {
+        if (request.query.freetext) {
 
-          eventQuery.event_free_text = { $regex: `${request.query.freetext}`};
+          eventQuery.event_free_text = { $regex: `${request.query.freetext}` };
         }
 
-        if (request.query.startTS) {
-          let tempStartTS = new Date(request.query.startTS);
-          // console.log("tempStartTS:", tempStartTS);
-          startTS = (tempStartTS >= startTS && tempStartTS <= stopTS)? tempStartTS : startTS;
-          // console.log("startTS:", startTS);
-        }
         //Time filtering
+        if (request.query.startTS) {
+          const tempStartTS = new Date(request.query.startTS);
+          const startTS = (tempStartTS >= cruise.start_ts && tempStartTS <= cruise.stop_ts) ? tempStartTS : cruise.start_ts;
+          query.ts = { $gte: startTS };
+        }
+        else {
+          query.ts = { $gte: cruise.start_ts };
+        }
 
         if (request.query.stopTS) {
-          let tempStopTS = new Date(request.query.stopTS);
-          // console.log("tempStopTS:", tempStopTS);
-          stopTS = (tempStopTS >= startTS && tempStopTS <= stopTS)? tempStopTS : stopTS;
-          // console.log("stopTS:", stopTS);
+          const tempStopTS = new Date(request.query.stopTS);
+          const stopTS = (tempStopTS >= cruise.start_ts && tempStopTS <= cruise.stop_ts) ? tempStopTS : cruise.stop_ts;
+          query.ts.$lte = stopTS;
+        }
+        else {
+          query.ts.$lte = cruise.stop_ts;
         }
 
         // eventQuery.ts = {"$gte": startTS , "$lte": stopTS };
 
-        let limit = (request.query.limit)? request.query.limit : 0;
-        let offset = (request.query.offset)? request.query.offset : 0;
+        const limit = (request.query.limit) ? request.query.limit : 0;
+        const offset = (request.query.offset) ? request.query.offset : 0;
 
         // console.log("eventQuery:", eventQuery);
 
         try {
-          const results = await db.collection(eventsTable).find(eventQuery, { _id: 1 }).skip(offset).limit(limit).toArray()
+          const results = await db.collection(eventsTable).find(eventQuery, { _id: 1 }).skip(offset).limit(limit).toArray();
 
           // EventID Filtering
-          if(results.length > 0) {
+          if (results.length > 0) {
             // console.log("results:", results);
-            let eventIDs = results.map((event) => {
+            const eventIDs = results.map((event) => {
               // console.log(event._id);
               return event._id;
             });
             query.event_id = { $in: eventIDs };
 
             // Datasource Filtering
-            if(request.query.datasource) {
-              if(Array.isArray(request.query.datasource)) {
+            if (request.query.datasource) {
+              if (Array.isArray(request.query.datasource)) {
                 query.data_source  = { $in: request.query.datasource };
-              } else {
+              }
+              else {
                 query.data_source  = request.query.datasource;
               }
             }
 
-            // Limiting & Offset
-            let limit = (request.query.limit)? request.query.limit : 0;
-            let offset = (request.query.offset)? request.query.offset : 0;
-
-            // console.log("query:", query);
-
             try {
-              const eventAuxDataResults = await db.collection(eventAuxDataTable).find(query).skip(offset).limit(limit).toArray()
+              const eventAuxDataResults = await db.collection(eventAuxDataTable).find(query).skip(offset).limit(limit).toArray();
 
               if (eventAuxDataResults.length > 0) {
                 eventAuxDataResults.forEach(_renameAndClearFields);
 
                 return h.response(eventAuxDataResults).code(200);
-              } else {
-                return h.response({ "statusCode": 404, 'message': 'No records found'}).code(404);
               }
-            } catch (err) {
-              console.log("ERROR:", err);
-              return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);
+ 
+              return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
+              
             }
-          } else {
-            return h.response({ "statusCode": 404, 'message': 'No records found'}).code(404);
+            catch (err) {
+              console.log("ERROR:", err);
+              return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);
+            }
           }
-        } catch (err) {
+          else {
+            return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
+          }
+        }
+        catch (err) {
           console.log("ERROR:", err);
-          return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);
+          return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);
         }
       },
       config: {
@@ -203,7 +216,7 @@ exports.plugin = {
             freetext: Joi.alternatives().try(
               Joi.string(),
               Joi.array().items(Joi.string()).optional()
-            ),
+            )
           }).optional(),
           options: {
             allowUnknown: true
@@ -233,10 +246,10 @@ exports.plugin = {
             })
           }
         },
-        description: 'Return the event_aux_data record based on query parameters',
+        description: 'Return the event_aux_data records for a cruise based on the cruise id',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong>, <strong>event_manager</strong> or <strong>event_logger</strong></p>',
-        tags: ['event_aux_data','auth','api'],
+        tags: ['event_aux_data','auth','api']
       }
     });
 
@@ -248,144 +261,152 @@ exports.plugin = {
         const db = server.mongo.db;
         const ObjectID = server.mongo.ObjectID;
 
-        let lowering = null
+        let lowering = null;
 
         try {
-          const loweringResult = await db.collection(loweringsTable).findOne({ _id: ObjectID(request.params.id) })
+          const loweringResult = await db.collection(loweringsTable).findOne({ _id: ObjectID(request.params.id) });
 
-          if(!loweringResult) {
-            return h.response({ "statusCode": 404, "message": "lowering not found for that id"}).code(404);          
+          if (!loweringResult) {
+            return h.response({ "statusCode": 404, "message": "lowering not found for that id" }).code(404);          
+          }
+
+          if (!request.auth.credentials.scope.includes('admin')) {
+            if (loweringResult.lowering_hidden || !loweringResult.lowering_access_list.includes(request.auth.credentials.id)) {
+              return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to retrieve this lowering" }).code(401);
+            }
           }
 
           lowering = loweringResult;
-        } catch(err) {
+        }
+        catch (err) {
           console.log(err);
-          return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);  
-        };
-
-        if(lowering.lowering_hidden && !request.auth.credentials.scope.includes("admin")) {
-          return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to retrieve hidden lowerings"}).code(401);
+          return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);  
         }
 
-        let query = {};
-        let eventQuery = {};
-        let startTS = new Date(lowering.start_ts);
-        let stopTS = new Date(lowering.stop_ts);
+        const query = {};
+        const eventQuery = {};
 
-        if(request.query.author) {
-          if(Array.isArray(request.query.author)) {
+        if (request.query.author) {
+          if (Array.isArray(request.query.author)) {
             eventQuery.event_author  = { $in: request.query.author };
-          } else {
+          }
+          else {
             eventQuery.event_author  = request.query.author;
           }
         }
 
-        if(request.query.value) {
-          if(Array.isArray(request.query.value)) {
+        if (request.query.value) {
+          if (Array.isArray(request.query.value)) {
 
-            let inList = [];
-            let ninList = [];
+            const inList = [];
+            const ninList = [];
 
-            for( let value of request.query.value ) {
-              if(value.startsWith("!")) {
+            for ( const value of request.query.value ) {
+              if (value.startsWith("!")) {
                 ninList.push(value.substr(1));
-              } else {
+              }
+              else {
                 inList.push(value);
               }
             }
             
-            if( inList.length > 0 && ninList.length > 0) {
+            if ( inList.length > 0 && ninList.length > 0) {
               eventQuery.event_value  = { $in: inList, $nin: ninList };
-            } else if (inList.length > 0) {
+            }
+            else if (inList.length > 0) {
               eventQuery.event_value  = { $in: inList };
-            } else {
+            }
+            else {
               eventQuery.event_value  = { $nin: ninList };
             }
 
-          } else {
-            if(request.query.value.startsWith("!")) {
+          }
+          else {
+            if (request.query.value.startsWith("!")) {
               eventQuery.event_value  = { $ne: request.query.value.substr(1) };
-            } else {
+            }
+            else {
               eventQuery.event_value  = request.query.value;
             }
           }
         }
 
-        if(request.query.freetext) {
+        if (request.query.freetext) {
 
-          eventQuery.event_free_text = { $regex: `${request.query.freetext}`};
+          eventQuery.event_free_text = { $regex: `${request.query.freetext}` };
         }
 
         //Time filtering
         if (request.query.startTS) {
-          let tempStartTS = new Date(request.query.startTS);
-          // console.log("tempStartTS:", tempStartTS);
-          startTS = (tempStartTS >= startTS && tempStartTS <= stopTS)? tempStartTS : startTS;
-          // console.log("startTS:", startTS);
+          const tempStartTS = new Date(request.query.startTS);
+          const startTS = (tempStartTS >= lowering.start_ts && tempStartTS <= lowering.stop_ts) ? tempStartTS : lowering.start_ts;
+          query.ts = { $gte: startTS };
+        }
+        else {
+          query.ts = { $gte: lowering.start_ts };
         }
 
         if (request.query.stopTS) {
-          let tempStopTS = new Date(request.query.stopTS);
-          // console.log("tempStopTS:", tempStopTS);
-          stopTS = (tempStopTS >= startTS && tempStopTS <= stopTS)? tempStopTS : stopTS;
-          // console.log("stopTS:", stopTS);
+          const tempStopTS = new Date(request.query.stopTS);
+          const stopTS = (tempStopTS >= lowering.start_ts && tempStopTS <= lowering.stop_ts) ? tempStopTS : lowering.stop_ts;
+          query.ts.$lte = stopTS;
+        }
+        else {
+          query.ts.$lte = lowering.stop_ts;
         }
 
-        eventQuery.ts = {"$gte": startTS , "$lte": stopTS };
-
-        // let limit = (request.query.limit)? request.query.limit : 0;
-        // let offset = (request.query.offset)? request.query.offset : 0;
-
-        // console.log("eventQuery:", eventQuery);
-
         try {
-          const results = await db.collection(eventsTable).find(eventQuery, { _id: 1 }).toArray()
+          const results = await db.collection(eventsTable).find(eventQuery, { _id: 1 }).toArray();
 
           // EventID Filtering
-          if(results.length > 0) {
-            // console.log("results:", results);
-            let eventIDs = results.map((event) => {
-              // console.log(event._id);
+          if (results.length > 0) {
+            const eventIDs = results.map((event) => {
+
               return event._id;
             });
             query.event_id  = { $in: eventIDs };
 
             // Datasource Filtering
-            if(request.query.datasource) {
-              if(Array.isArray(request.query.datasource)) {
+            if (request.query.datasource) {
+              if (Array.isArray(request.query.datasource)) {
                 query.data_source  = { $in: request.query.datasource };
-              } else {
+              }
+              else {
                 query.data_source  = request.query.datasource;
               }
             }
 
             // Limiting & Offset
-            let limit = (request.query.limit)? request.query.limit : 0;
-            let offset = (request.query.offset)? request.query.offset : 0;
+            const limit = (request.query.limit) ? request.query.limit : 0;
+            const offset = (request.query.offset) ? request.query.offset : 0;
 
             // console.log("query:", query);
 
             try {
-              const auxDataResults = await db.collection(eventAuxDataTable).find(query).skip(offset).limit(limit).toArray()
+              const auxDataResults = await db.collection(eventAuxDataTable).find(query).skip(offset).limit(limit).toArray();
 
               if (auxDataResults.length > 0) {
                 auxDataResults.forEach(_renameAndClearFields);
 
                 return h.response(auxDataResults).code(200);
-              } else {
-                return h.response({ "statusCode": 404, 'message': 'No records found'}).code(404);
               }
-            } catch(err) {
+ 
+              return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
+              
+            }
+            catch (err) {
               console.log(err);
-              return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);  
-            };
-          } else {
-            return h.response({ "statusCode": 404, 'message': 'No records found'}).code(404);
+              return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);  
+            }
           }
-        } catch(err) {
+          else {
+            return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
+          }
+        }
+        catch (err) {
           console.log(err);
-          return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);  
-        };
+          return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);  
+        }
       },
       config: {
         auth: {
@@ -419,7 +440,7 @@ exports.plugin = {
             freetext: Joi.alternatives().try(
               Joi.string(),
               Joi.array().items(Joi.string()).optional()
-            ),
+            )
           }).optional(),
           options: {
             allowUnknown: true
@@ -454,10 +475,10 @@ exports.plugin = {
 
           }
         },
-        description: 'Return the event_aux_data record based on query parameters',
+        description: 'Return the event_aux_data records for a lowering based on the lowering id',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong>, <strong>event_manager</strong> or <strong>event_logger</strong></p>',
-        tags: ['event_aux_data','auth','api'],
+        tags: ['event_aux_data','auth','api']
       }
     });
 
@@ -469,58 +490,64 @@ exports.plugin = {
         const db = server.mongo.db;
         const ObjectID = server.mongo.ObjectID;
 
-        let query = {};
+        const query = {};
 
-        if(request.query.author || request.query.value || request.query.freetext || request.query.startTS || request.query.stopTS) {
+        if (request.query.author || request.query.value || request.query.freetext || request.query.startTS || request.query.stopTS) {
 
-          if(request.query.eventID) {
-            return h.response({ "statusCode": 400, "error": 'malformed query', "message": 'Cannot include param eventID when using author, value, freetext, startTS or stopTS'}).code(400);          
+          if (request.query.eventID) {
+            return h.response({ "statusCode": 400, "error": 'malformed query', "message": 'Cannot include param eventID when using author, value, freetext, startTS or stopTS' }).code(400);          
           }
 
-          let eventQuery = {};
+          const eventQuery = {};
 
-          if(request.query.author) {
-            if(Array.isArray(request.query.author)) {
+          if (request.query.author) {
+            if (Array.isArray(request.query.author)) {
               eventQuery.event_author  = { $in: request.query.author };
-            } else {
+            }
+            else {
               eventQuery.event_author  = request.query.author;
             }
           }
 
-          if(request.query.value) {
-            if(Array.isArray(request.query.value)) {
+          if (request.query.value) {
+            if (Array.isArray(request.query.value)) {
 
-              let inList = [];
-              let ninList = [];
+              const inList = [];
+              const ninList = [];
 
-              for( let value of request.query.value ) {
-                if(value.startsWith("!")) {
+              for ( const value of request.query.value ) {
+                if (value.startsWith("!")) {
                   ninList.push(value.substr(1));
-                } else {
+                }
+                else {
                   inList.push(value);
                 }
               }
               
-              if( inList.length > 0 && ninList.length > 0) {
+              if ( inList.length > 0 && ninList.length > 0) {
                 query.event_value  = { $in: inList, $nin: ninList };
-              } else if (inList.length > 0) {
+              }
+              else if (inList.length > 0) {
                 query.event_value  = { $in: inList };
-              } else {
+              }
+              else {
                 query.event_value  = { $nin: ninList };
               }
 
-            } else {
-              if(request.query.value.startsWith("!")) {
+            }
+            else {
+              if (request.query.value.startsWith("!")) {
                 query.event_value  = { $ne: request.query.value.substr(1) };
-              } else {
+              }
+              else {
                 query.event_value  = request.query.value;
               }
             }
           }
 
-          if(request.query.freetext) {
+          if (request.query.freetext) {
 
-            eventQuery.event_free_text = { $regex: `${request.query.freetext}`};
+            eventQuery.event_free_text = { $regex: `${request.query.freetext}` };
           }
 
           //Time filtering
@@ -536,105 +563,110 @@ exports.plugin = {
               stopTS = new Date(request.query.stopTS);
             }
 
-            eventQuery.ts = {"$gte": startTS , "$lt": stopTS };
+            eventQuery.ts = { "$gte": startTS , "$lt": stopTS };
           }
 
-          let limit = (request.query.limit)? request.query.limit : 0;
-          let offset = (request.query.offset)? request.query.offset : 0;
+          const limit = (request.query.limit) ? request.query.limit : 0;
+          const offset = (request.query.offset) ? request.query.offset : 0;
 
           // console.log("eventQuery:", eventQuery);
 
           try {
-            const results = await db.collection(eventsTable).find(eventQuery, { _id: 1 }).skip(offset).limit(limit).toArray()
+            const results = await db.collection(eventsTable).find(eventQuery, { _id: 1 }).skip(offset).limit(limit).toArray();
 
             // EventID Filtering
-            if(results.length > 0) {
+            if (results.length > 0) {
               // console.log("results:", results);
-              let eventIDs = results.map((event) => {
+              const eventIDs = results.map((event) => {
                 // console.log(event._id);
                 return new ObjectID(event._id);
               });
               query.event_id  = { $in: eventIDs };
 
               // Datasource Filtering
-              if(request.query.datasource) {
-                if(Array.isArray(request.query.datasource)) {
+              if (request.query.datasource) {
+                if (Array.isArray(request.query.datasource)) {
                   query.data_source  = { $in: request.query.datasource };
-                } else {
+                }
+                else {
                   query.data_source  = request.query.datasource;
                 }
               }
 
-              // Limiting & Offset
-              let limit = (request.query.limit)? request.query.limit : 0;
-              let offset = (request.query.offset)? request.query.offset : 0;
-
-              // console.log("query:", query);
-
               try {
-                const auxDataResults = await db.collection(eventAuxDataTable).find(query).skip(offset).limit(limit).toArray()
+                const auxDataResults = await db.collection(eventAuxDataTable).find(query).skip(offset).limit(limit).toArray();
 
                 if (auxDataResults.length > 0) {
                   auxDataResults.forEach(_renameAndClearFields);
 
                   return h.response(auxDataResults).code(200);
-                } else {
-                  return h.response({ "statusCode": 404, 'message': 'No records found'}).code(404);
                 }
-              } catch(err) {
+ 
+                return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
+                
+              }
+              catch (err) {
                 console.log(err);
-                return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);  
-              };
-            } else {
-              return h.response({ "statusCode": 404, 'message': 'No records found'}).code(404);
+                return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);  
+              }
             }
-          } catch(err) {
+            else {
+              return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
+            }
+          }
+          catch (err) {
             console.log(err);
-            return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);  
-          };
-        } else {
+            return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);  
+          }
+        }
+        else {
 
           // EventID Filtering
-          if(request.query.eventID) {
-            if(Array.isArray(request.query.eventID)) {
-              let eventIDs = request.query.eventID.map((id) => {
+          if (request.query.eventID) {
+            if (Array.isArray(request.query.eventID)) {
+              const eventIDs = request.query.eventID.map((id) => {
+
                 return new ObjectID(id);
               });
               query.event_id  = { $in: eventIDs };
-            } else {
+            }
+            else {
               query.event_id  = new ObjectID(request.query.eventID);
             }
           }
 
           // Datasource Filtering
-          if(request.query.datasource) {
-            if(Array.isArray(request.query.datasource)) {
+          if (request.query.datasource) {
+            if (Array.isArray(request.query.datasource)) {
               query.data_source  = { $in: request.query.datasource };
-            } else {
+            }
+            else {
               query.data_source  = request.query.datasource;
             }
           }
 
           // Limiting & Offset
-          let limit = (request.query.limit)? request.query.limit : 0;
-          let offset = (request.query.offset)? request.query.offset : 0;
+          const limit = (request.query.limit) ? request.query.limit : 0;
+          const offset = (request.query.offset) ? request.query.offset : 0;
 
           // console.log("query:", query);
 
           try {
-            const results = await db.collection(eventAuxDataTable).find(query).skip(offset).limit(limit).toArray()
+            const results = await db.collection(eventAuxDataTable).find(query).skip(offset).limit(limit).toArray();
 
             if (results.length > 0) {
               results.forEach(_renameAndClearFields);
 
               return h.response(results).code(200);
-            } else {
-              return h.response({ "statusCode": 404, 'message': 'No records found'}).code(404);
             }
-          } catch(err) {
+ 
+            return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
+            
+          }
+          catch (err) {
             console.log(err);
-            return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);  
-          };
+            return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);  
+          }
         }
       },
       config: {
@@ -670,7 +702,7 @@ exports.plugin = {
             freetext: Joi.alternatives().try(
               Joi.string(),
               Joi.array().items(Joi.string()).optional()
-            ),
+            )
           }).optional(),
           options: {
             allowUnknown: true
@@ -700,10 +732,10 @@ exports.plugin = {
             })
           }
         },
-        description: 'Return the event_aux_data record based on query parameters',
+        description: 'Return the event_aux_data records based on query parameters',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong>, <strong>event_manager</strong> or <strong>event_logger</strong></p>',
-        tags: ['event_aux_data','auth','api'],
+        tags: ['event_aux_data','auth','api']
       }
     });
 
@@ -715,20 +747,21 @@ exports.plugin = {
         const db = server.mongo.db;
         const ObjectID = server.mongo.ObjectID;
 
-        let query = { _id: new ObjectID(request.params.id) };
+        const query = { _id: new ObjectID(request.params.id) };
 
         try {
-          const results = await db.collection(eventAuxDataTable).findOne(query)
+          const result = await db.collection(eventAuxDataTable).findOne(query);
           if (!result) {
             return h.response({ "statusCode": 404, 'message': 'No record found for id: ' + request.params.id }).code(404);
           }
 
-          result = _renameAndClearFields(result);
-          return h.response(result).code(200);
-        } catch(err) {
+          const mod_result = _renameAndClearFields(result);
+          return h.response(mod_result).code(200);
+        }
+        catch (err) {
           console.log(err);
-          return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);  
-        };
+          return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);  
+        }
       },
       config: {
         auth:{
@@ -774,10 +807,10 @@ exports.plugin = {
             })
           }
         },
-        description: 'Return the event_aux_data record based on event id',
+        description: 'Return the event_aux_data record based on event_aux_data id',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong>, <strong>event_manager</strong> or <strong>event_logger</strong></p>',
-        tags: ['event_aux_data','auth', 'api'],
+        tags: ['event_aux_data','auth', 'api']
       }
     });
 
@@ -789,110 +822,123 @@ exports.plugin = {
         const db = server.mongo.db;
         const ObjectID = server.mongo.ObjectID;
 
-        let event_aux_data = request.payload;
+        const event_aux_data = request.payload;
 
         // If payload includes a valid _id, try to insert/update
-        if(request.payload.id) {
+        if (request.payload.id) {
           try {
             event_aux_data._id = new ObjectID(request.payload.id);
             delete event_aux_data.id;
             event_aux_data.event_id = new ObjectID(request.payload.event_id);
 
             try {
-              const results = await db.collection(eventAuxDataTable).insertOne(event_aux_data)
+              const result = await db.collection(eventAuxDataTable).insertOne(event_aux_data);
               return h.response({ n: result.result.n, ok: result.result.ok, insertedCount: result.insertedCount, insertedId: result.insertedId }).code(201);
 
-            } catch(err) {
-              if(err.code === 11000) {
+            }
+            catch (err) {
+              if (err.code === 11000) {
                 // console.log(event_aux_data)
                 try {
-                  const updateResults = await db.collection(eventAuxDataTable).updateOne( { _id: event_aux_data._id }, { $set: event_aux_data} )
+                  const updateResults = await db.collection(eventAuxDataTable).updateOne( { _id: event_aux_data._id }, { $set: event_aux_data } );
                   return h.response(updateResults).code(204);
-                } catch(err) {
+                }
+                catch (err) {
                   console.log("ERROR Update 0:", err);
-                  return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);  
-                };
-              } else {
-                console.log("ERROR Update Other 0:", err);
-                return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);  
+                  return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);  
+                }
               }
-            };
-          } catch(err) {
-            console.log("invalid ObjectID");
-            return h.response({statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters"}).code(400);
+              else {
+                console.log("ERROR Update Other 0:", err);
+                return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);  
+              }
+            }
           }
-        } else {
+          catch (err) {
+            console.log("invalid ObjectID");
+            return h.response({ statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters" }).code(400);
+          }
+        }
+        else {
 
           try {
             event_aux_data.event_id = new ObjectID(request.payload.event_id);
-          } catch(err) {
+          }
+          catch (err) {
             console.log("invalid event ObjectID");
-            return h.response({statusCode: 400, error: "Invalid argument", message: "event_id must be a single String of 12 bytes or a string of 24 hex characters"}).code(400);
+            return h.response({ statusCode: 400, error: "Invalid argument", message: "event_id must be a single String of 12 bytes or a string of 24 hex characters" }).code(400);
           }
 
-          let query = {_id: event_aux_data.event_id};
+          let query = { _id: event_aux_data.event_id };
 
           try {
-            const queryResults = await db.collection(eventsTable).findOne(query)
+            const queryResult = await db.collection(eventsTable).findOne(query);
 
-            if(!queryResult){
-              return h.response({statusCode:'401', error: 'invalid event_id', message: 'event not found'}).code(401);
+            if (!queryResult){
+              return h.response({ statusCode:'401', error: 'invalid event_id', message: 'event not found' }).code(401);
             }
 
             // console.log("queryResult:", queryResult)
-            query = { event_id: event_aux_data.event_id, data_source: event_aux_data.data_source};
+            query = { event_id: event_aux_data.event_id, data_source: event_aux_data.data_source };
             // console.log("query1:", query)
 
             try {
-              const result = await db.collection(eventAuxDataTable).findOne(query)
+              const result = await db.collection(eventAuxDataTable).findOne(query);
 
               // console.log("result1:", result)
             
-              if(!result){
+              if (!result){
                 // console.log("This is an insert")
                 // event_aux_data.event_id = new ObjectID(event_aux_data.event_id);
                 try {
-                  const result = await db.collection(eventAuxDataTable).insertOne(event_aux_data)
+                  const insertResult = await db.collection(eventAuxDataTable).insertOne(event_aux_data);
               
-                  return h.response({ n: result.result.n, ok: result.result.ok, insertedCount: result.insertedCount, insertedId: result.insertedId }).code(201);
+                  return h.response({ n: insertResult.result.n, ok: insertResult.result.ok, insertedCount: insertResult.insertedCount, insertedId: insertResult.insertedId }).code(201);
 
-                } catch(err) {
-                  if(err.code === 11000) {
+                }
+                catch (err) {
+                  if (err.code === 11000) {
                     // console.log(event_aux_data)
                     try {
-                      const updateResults = await db.collection(eventAuxDataTable).updateOne( query, { $set: event_aux_data} )
+                      const updateResults = await db.collection(eventAuxDataTable).updateOne( query, { $set: event_aux_data } );
                       return h.response(updateResults).code(204);
-                    } catch(err) {
+                    }
+                    catch (err) {
                       console.log("ERROR Update 1:", err);
-                      return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);  
-                    };
-                  } else {
+                      return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);  
+                    }
+                  }
+                  else {
                     console.log("ERROR Update Other 1:", err);
                     return h.response().code(503);
                   }
-                };
-              } else {
+                }
+              }
+              else {
 
                 // console.log("This is an update")
                 query = { _id: new ObjectID(result._id) };
                 // console.log("query:", query)
 
                 try {
-                  const updateResults = await db.collection(eventAuxDataTable).updateOne( query, { $set: event_aux_data} )
+                  const updateResults = await db.collection(eventAuxDataTable).updateOne( query, { $set: event_aux_data } );
                   return h.response(updateResults).code(204);
-                } catch(err) {
+                }
+                catch (err) {
                   console.log("ERROR Update 2:", err);
-                  return h.response({statusCode: 503, error: "server error", message: "database error"}).code(503);  
-                };
+                  return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);  
+                }
               }    
-            } catch(err) {
+            }
+            catch (err) {
               console.log("ERROR find aux data:", err);
               return h.response().code(503);
-            };
-          } catch(err) {
+            }
+          }
+          catch (err) {
             console.log("ERROR find event:", err);
             return h.response().code(503);
-          };
+          }
         }
       },
       config: {
@@ -915,7 +961,7 @@ exports.plugin = {
                 Joi.number()
               ).required(),
               data_uom:Joi.string().optional()
-            })).required().min(1),
+            })).required().min(1)
           },
           options: {
             allowUnknown: true
@@ -944,7 +990,7 @@ exports.plugin = {
         description: 'Create a new event_aux_data record',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong>, <strong>event_manager</strong> or <strong>event_logger</strong></p>',
-        tags: ['event_aux_data','auth','api'],
+        tags: ['event_aux_data','auth','api']
       }
     });
 
@@ -956,26 +1002,27 @@ exports.plugin = {
         const db = server.mongo.db;
         const ObjectID = server.mongo.ObjectID;
 
-        let query = { _id: new ObjectID(request.params.id) };
+        const query = { _id: new ObjectID(request.params.id) };
 
         try {
-          const result = await db.collection(eventAuxDataTable).findOne(query)
+          const result = await db.collection(eventAuxDataTable).findOne(query);
 
-          if(!result) {
+          if (!result) {
             return h.response({ "statusCode": 400, "error": "Bad request", 'message': 'No record found for id: ' + request.params.id }).code(400);
           }
 
-          let event_aux_data = request.payload;
-          if(event_aux_data.data_array) {
+          const event_aux_data = request.payload;
+          if (event_aux_data.data_array) {
             result.data_array.forEach((resultOption) => {
+
               let foundit = false;
               
               event_aux_data.data_array.forEach((requestOption) => {
               
-                if(requestOption.data_name == resultOption.data_name) {
+                if (requestOption.data_name === resultOption.data_name) {
                   requestOption.data_value = resultOption.data_value;
                   
-                  if(resultOption.data_uom) {
+                  if (resultOption.data_uom) {
                     requestOption.data_uom = resultOption.data_uom;
                   }
 
@@ -991,16 +1038,18 @@ exports.plugin = {
 
 
           try {
-            const updateResults = await db.collection(eventAuxDataTable).updateOne( query, { $set: event_aux_data} )
+            const updateResults = await db.collection(eventAuxDataTable).updateOne( query, { $set: event_aux_data } );
             return h.response(updateResults).code(204);
-          } catch(err) {
+          }
+          catch (err) {
             console.log("ERROR:", err);
             return h.response().code(503);
-          };
-        } catch(err) {
+          }
+        }
+        catch (err) {
           console.log("ERROR:", err);
           return h.response().code(503);
-        };
+        }
       },
       config: {
         auth: {
@@ -1020,8 +1069,8 @@ exports.plugin = {
             data_array: Joi.array().items(Joi.object({
               data_name:Joi.string().required(),
               data_value:Joi.string().required(),
-              data_uom:Joi.string().optional(),
-            })).optional(),
+              data_uom:Joi.string().optional()
+            })).optional()
           }).required().min(1),
           options: {
             allowUnknown: true
@@ -1044,7 +1093,7 @@ exports.plugin = {
         description: 'Update a event_aux_data record',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong>, <strong>event_manager</strong> or <strong>event_logger</strong></p>',
-        tags: ['event_aux_data','auth','api'],
+        tags: ['event_aux_data','auth','api']
       }
     });
 
@@ -1056,26 +1105,27 @@ exports.plugin = {
         const db = server.mongo.db;
         const ObjectID = server.mongo.ObjectID;
 
-        let query = { _id: new ObjectID(request.params.id)};
+        const query = { _id: new ObjectID(request.params.id) };
 
         try {
-          const result = await db.collection(eventAuxDataTable).findOne(query)
-          if(!result) {
+          const result = await db.collection(eventAuxDataTable).findOne(query);
+          if (!result) {
             return h.response({ "statusCode": 404, 'message': 'No record found for id: ' + request.params.id }).code(404);
           }
 
           try {
-            const deleteResult = await db.collection(eventAuxDataTable).deleteOne(query)
+            const deleteResult = await db.collection(eventAuxDataTable).deleteOne(query);
             return h.response(deleteResult).code(204);
-          } catch(err) {
+          }
+          catch (err) {
             console.log("ERROR:", err);
             return h.response().code(503);
-          };
-
-        } catch(err) {
+          }
+        }
+        catch (err) {
           console.log("ERROR:", err);
           return h.response().code(503);
-        };
+        }
       },
       config: {
         auth: {
@@ -1111,8 +1161,8 @@ exports.plugin = {
         description: 'Delete an event_aux_data record',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>admin</strong>, <strong>event_manager</strong> or <strong>event_logger</strong></p>',
-        tags: [ 'event_aux_data','auth','api'],
+        tags: ['event_aux_data','auth','api']
       }
-    })
+    });
   }
-}
+};

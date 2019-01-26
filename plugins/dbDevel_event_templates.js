@@ -1,8 +1,7 @@
-'use strict';
-var test = require('assert');
+
 
 const {
-  eventTemplatesTable,
+  eventTemplatesTable
 } = require('../config/db_constants');
 
 exports.plugin = {
@@ -184,32 +183,34 @@ exports.plugin = {
 
     console.log("Searching for Event Templates Collection");
     try {
-      const result = await db.listCollections({name:eventTemplatesTable}).toArray()
-      if(result[0]) {
+      const result = await db.listCollections({ name:eventTemplatesTable }).toArray();
+      if (result[0]) {
         console.log("Event Templates Collection is present... dropping it");
         try {
-          await db.dropCollection(eventTemplatesTable)
-        } catch(err) {
-          console.log("DROP ERROR:", err.code)
-          throw(err)
+          await db.dropCollection(eventTemplatesTable);
+        }
+        catch (err) {
+          console.log("DROP ERROR:", err.code);
+          throw (err);
         }
       }
-    } catch(err) {
-      console.log("LIST ERROR:", err.code)
-      throw(err)
+    }
+    catch (err) {
+      console.log("LIST ERROR:", err.code);
+      throw (err);
     }
 
     try {
       console.log("Creating Event Templates Collection");
-      const collection = await db.createCollection(eventTemplatesTable)
+      const collection = await db.createCollection(eventTemplatesTable);
 
       console.log("Populating Event Templates Collection");
-      await collection.insertMany(test_data)
+      await collection.insertMany(test_data);
 
-      return true
-    } catch(err) {
-      console.log("CREATE ERROR:", err.code)
-      throw(err)
+    }
+    catch (err) {
+      console.log("CREATE ERROR:", err.code);
+      throw (err);
     }
   }
-}
+};

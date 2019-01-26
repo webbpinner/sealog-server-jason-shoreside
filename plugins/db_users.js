@@ -1,8 +1,7 @@
-'use strict';
-var test = require('assert');
+
 
 const {
-  usersTable,
+  usersTable
 } = require('../config/db_constants');
 
 exports.plugin = {
@@ -22,7 +21,7 @@ exports.plugin = {
         password: "$2a$10$bPX0STFJoacb6Qu3lTWabOQAdaXVyDIe.ngqa2HGC2DbWL4Fsb/h2",
         last_login: new Date(),
         roles: ['admin', 'event_manager', 'event_logger', 'event_watcher'],
-        system_user: true,
+        system_user: true
       },
       {
         _id: ObjectID("5981f167212b348aed7fb9f5"),
@@ -32,7 +31,7 @@ exports.plugin = {
         password: "$2a$10$oTRayeYC2sOAuW9vapp3Ze6zVFsGyj40cc1XgWv.NL/hGLNi82Whq",
         last_login: new Date(),
         roles: ['event_manager', 'event_logger', 'event_watcher'],
-        system_user: true,
+        system_user: true
       },
       {
         _id: ObjectID("5981f167212b348aed7fc9f5"),
@@ -42,29 +41,34 @@ exports.plugin = {
         password: "$2a$10$oTRayeYC2sOAuW9vapp3Ze6zVFsGyj40cc1XgWv.NL/hGLNi82Whq",
         last_login: new Date(),
         roles: ['event_manager', 'event_logger', 'event_watcher', 'cruise_manager'],
-        system_user: true,
+        system_user: true
       }
     ];
 
     console.log("Searching for Users Collection");
     try {
-      const result = await db.listCollections({name:usersTable}).toArray()
-      if(result) {
-        console.log("Collection already exists");
-        return true
+      const result = await db.listCollections({ name:usersTable }).toArray();
+      if (result) {
+        console.log("Collection already exists... we're done here.");
+        return;
       }
-    } catch(err) {
-      console.log("ERROR:", err.code)
-      throw(err)
+    }
+    catch (err) {
+      console.log("ERROR:", err.code);
+      throw (err);
     }
 
-    console.log("Creating Users Collection");
     try {
-      const result = await db.createCollection(usersTable)
-      return true
-    } catch(err) {
-      console.log("ERROR:", err.code)
-      throw(err)
+      console.log("Creating Users Collection");
+      const collection = await db.createCollection(usersTable);
+
+      console.log("Populating Users Collection");
+      await collection.insertMany(init_data);
+
+    }
+    catch (err) {
+      console.log("ERROR:", err.code);
+      throw (err);
     }
   }
 };
