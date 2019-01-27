@@ -12,9 +12,9 @@ const {
 
 let env = process.env.NODE_ENV || 'development';
 
-env = (env === 'test')? 'development': env;
+env = (env === 'test') ? 'development' : env;
 
-const envKey = key => {
+const envKey = (key) => {
 
   const configuration = {
     development: {
@@ -40,7 +40,7 @@ const envKey = key => {
   return configuration[env][key];
 };
 
-const mongodb_URL = 'mongodb://localhost:27017/'+ envKey('db');
+const mongodb_URL = 'mongodb://localhost:27017/' +  envKey('db');
 
 const manifest = {
   server: {
@@ -49,7 +49,7 @@ const manifest = {
 //    tls: tlsOptions,
     routes: {
       cors: true
-    },
+    }
   },
 
   register: {
@@ -127,7 +127,7 @@ const manifest = {
   }
 };
 
-if(env === 'development') { // DEVELOPMENT
+if (env === 'development') { // DEVELOPMENT
 
   manifest.register.plugins.push({ "plugin": "blipp" });
   manifest.register.plugins.push({ "plugin": "./plugins/dbDevel_cruises" });
@@ -157,7 +157,8 @@ if(env === 'development') { // DEVELOPMENT
     }
   });
 
-} else if(env === 'production') { // PRODUCTION
+}
+else if (env === 'production') { // PRODUCTION
 
   manifest.register.plugins.push({ "plugin": "./plugins/db_custom_vars" });
   manifest.register.plugins.push({ "plugin": "./plugins/db_cruises" });

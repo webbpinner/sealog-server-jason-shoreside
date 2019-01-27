@@ -1,7 +1,7 @@
 # sealog-server-jason-shoreside
 Sealog event logging server, tweaked to support the JASON ROV shoreside
 
-Sealog is intended as a general purpose eventlogging framework that is independent of any particular user-interface.  All interactions with the Sealog Server are done via the [Sealog Server's RESTful API](<https://sealog-jason-shoreside.oceandatarat.org:8500/sealog-server/documentation>).
+Sealog is intended as a general purpose eventlogging framework that is independent of any particular user-interface.  All interactions with the Sealog Server are done via the [Sealog Server's RESTful API](<https://sealog-jason-shoreside.oceandatarat.org:8900/sealog-server/documentation>).
 
 This allows for users to develop their own user interfaces for adding, editing and exporting events or extend the functionality of other systems to dynamically submit events.  It's even possible to develop hardware-based clients (physical buttons) using cheap network-aware microcontrollers (i.e Ardinuo w/Ethernet Shield).
 
@@ -18,7 +18,7 @@ Almost all calls to the API are authenticated using Java Web Tokens (JWT).  The 
 
 ## API Documentation
 
-Please refer to the [Sealog Server's RESTful API](<https://sealog-jason.oceandatarat.org:8500/sealog-server/documentation>)
+Please refer to the [Sealog Server's RESTful API](<https://sealog-jason-shoreside.oceandatarat.org:8900/sealog-server/documentation>)
 
 ## Installation
 
@@ -26,15 +26,15 @@ For Sealog Server installation instruction please look at [INSTALL.md](https://g
 
 ### React/Redux front-end client
 
-[sealog client for JASON](https://github.com/webbpinner/sealog-client-jason) is a react/redux-based web-client developed for use with sealog-server-jason-shoreside.
+[sealog client for JASON](https://github.com/webbpinner/sealog-client-jason-shoreside) is a react/redux-based web-client developed for use with sealog-server-jason-shoreside.
 
 ### Obtaining a JWT via the Command-line
 
 Most of the API calls require a JWT to be included with the request header.  Here's how to obtain the JWT for a particular user from the command-line.  This example assumes cURL is installed.
 
-From the terminal:
+From the terminal replaceing `<username>` and `<password>` with the appropriate information:
 ```
-curl -H "Content-Type: application/json" -X POST -d '{"username":"guest","password":""}' https://sealog-jason.oceandatarat.org:8500/sealog-server/login
+curl -H "Content-Type: application/json" -X POST -d '{"username":<username>,"password":<pasword>}' https://sealog-alvin-shoreside.oceandatarat.org:9000/sealog-server/login
 ```
 
 This will respond with:
@@ -59,7 +59,7 @@ Submitting an event to the Sealog Server requires a JWT who's associated user in
 
 From the terminal:
 ```
-curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' --header 'Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjBjNDVkN2I0LTU4ODEtNGU2NC04ZmQzLTIwNTczMjVlMmFmZSIsInNjb3BlIjpbImV2ZW50X21hbmFnZXIiLCJldmVudF9sb2dnZXIiLCJldmVudF93YXRjaGVyIl0sImlhdCI6MTUwMDAzNTc1NX0.WoOLfXxCIxIZEswy1lsbjm7XxDcbfd_NuZsL2-NB_Qw' -d '{"event_value": "TEST"}' 'https://sealog-jason.oceandatarat.org:8500/sealog-server/api/v1/events'
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' --header 'Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjBjNDVkN2I0LTU4ODEtNGU2NC04ZmQzLTIwNTczMjVlMmFmZSIsInNjb3BlIjpbImV2ZW50X21hbmFnZXIiLCJldmVudF9sb2dnZXIiLCJldmVudF93YXRjaGVyIl0sImlhdCI6MTUwMDAzNTc1NX0.WoOLfXxCIxIZEswy1lsbjm7XxDcbfd_NuZsL2-NB_Qw' -d '{"event_value": "TEST"}' 'https://sealog-jason-shoreside.oceandatarat.org:8900/sealog-server/api/v1/events'
 ```
 
 This will respond with:
@@ -85,7 +85,7 @@ Submitting an event to sealog using python is very similar to the way it's done 
 import requests
 import json
 
-root_url = 'https://sealog-jason.oceandatarat.org:8500/sealog-server'
+root_url = 'https://sealog-jason-shoreside.oceandatarat.org:8900/sealog-server'
 api_path = '/login'
 
 payload = {
@@ -123,7 +123,7 @@ Namespace Examples.System.Net
 
             Public Shared Sub Main()  
             Dim uriString As String
-            uriString = "https://sealog-jason.oceandatarat.org:8500/sealog-server"
+            uriString = "https://sealog-jason-shoreside.oceandatarat.org:8900/sealog-server"
 
             Dim loginPath As String
             loginPath = "/login"

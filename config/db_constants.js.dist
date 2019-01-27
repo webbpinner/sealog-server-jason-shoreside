@@ -17,5 +17,5 @@ module.exports = {
   eventTemplatesTable,
   eventsTable,
   loweringsTable,
-  usersTable,
+  usersTable
 };
