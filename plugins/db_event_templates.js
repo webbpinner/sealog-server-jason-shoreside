@@ -15,7 +15,7 @@ exports.plugin = {
     console.log("Searching for Event Template Collection");
     try {
       const result = await db.listCollections({ name:eventTemplatesTable }).toArray();
-      if (result) {
+      if (result.length > 0) {
         console.log("Collection already exists... we're done here.");
         return;
       }

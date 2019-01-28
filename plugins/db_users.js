@@ -48,7 +48,7 @@ exports.plugin = {
     console.log("Searching for Users Collection");
     try {
       const result = await db.listCollections({ name:usersTable }).toArray();
-      if (result) {
+      if (result.length > 0) {
         console.log("Collection already exists... we're done here.");
         return;
       }

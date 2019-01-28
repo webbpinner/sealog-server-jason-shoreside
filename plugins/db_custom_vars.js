@@ -23,7 +23,7 @@ exports.plugin = {
     console.log("Searching for Custom Variable Collection");
     try {
       const result = await db.listCollections({ name:customVarsTable }).toArray();
-      if (result[0]) {
+      if (result.length > 0) {
         console.log("Custom Variable Collection is present... dropping it");
         try {
           await db.dropCollection(customVarsTable);
