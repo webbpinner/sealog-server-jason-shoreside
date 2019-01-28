@@ -44,7 +44,7 @@ exports.plugin = {
         }
         catch (err) {
           console.log(err);
-          return h.response({ statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503);
+          return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
         }
       },
       config: {
@@ -128,7 +128,7 @@ exports.plugin = {
         }
         catch (err) {
           console.log(err);
-          return h.response({ statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503);
+          return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
         }
       },
       config: {
@@ -230,7 +230,7 @@ exports.plugin = {
         }
         catch (err) {
           console.log(err);
-          return h.response({ statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503);
+          return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
         }
       },
       config: {
@@ -315,7 +315,7 @@ exports.plugin = {
         }
         catch (err) {
           console.log(err);
-          return h.response({ statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503);
+          return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
         }
 
         try {
@@ -324,7 +324,7 @@ exports.plugin = {
         }
         catch (err) {
           console.log(err);
-          return h.response({ statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503);
+          return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
         }
       },
       config: {
@@ -411,12 +411,12 @@ exports.plugin = {
           }
           catch (err) {
             console.log(err);
-            return h.response({ statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503);
+            return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
           }
         }
         catch (err) {
           console.log(err);
-          return h.response({ statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503);
+          return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
         }
       },
       config: {

@@ -34,7 +34,7 @@ Most of the API calls require a JWT to be included with the request header.  Her
 
 From the terminal replaceing `<username>` and `<password>` with the appropriate information:
 ```
-curl -H "Content-Type: application/json" -X POST -d '{"username":<username>,"password":<pasword>}' https://sealog-alvin-shoreside.oceandatarat.org:9000/sealog-server/login
+curl -H "Content-Type: application/json" -X POST -d '{"username":<username>,"password":<pasword>}' https://sealog-jason-shoreside.oceandatarat.org:9000/sealog-server/login
 ```
 
 This will respond with:
