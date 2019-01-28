@@ -156,7 +156,6 @@ exports.plugin = {
         const limit = (request.query.limit) ? request.query.limit : 0;
         const offset = (request.query.offset) ? request.query.offset : 0;
 
-        console.log("query:", query);
         try {
           const cruises = await db.collection(cruisesTable).find(query).sort( { start_ts: -1 } ).skip(offset).limit(limit).toArray();
 
