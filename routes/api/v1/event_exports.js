@@ -97,6 +97,8 @@ exports.plugin = {
             }
           }
 
+          cruise = cruiseResult;
+
         }
         catch (err) {
           console.log("ERROR:", err);
