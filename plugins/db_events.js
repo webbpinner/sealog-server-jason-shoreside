@@ -15,7 +15,7 @@ exports.plugin = {
     console.log("Searching for Events Collection");
     try {
       const result = await db.listCollections({ name:eventsTable }).toArray();
-      if (result.legnth > 0) {
+      if (result.length > 0) {
         console.log("Collection already exists... we're done here.");
         return;
       }

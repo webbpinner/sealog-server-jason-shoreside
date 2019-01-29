@@ -182,7 +182,7 @@ exports.plugin = {
     console.log("Searching for Event Aux Collection");
     try {
       const result = await db.listCollections({ name:eventAuxDataTable }).toArray();
-      if (result[0]) {
+      if (result.length > 0) {
         console.log("Event Aux Collection is present... dropping it");
         try {
           await db.dropCollection(eventAuxDataTable);

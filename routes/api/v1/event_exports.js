@@ -86,11 +86,16 @@ exports.plugin = {
         try {
           const cruiseResult = await db.collection(cruisesTable).findOne({ _id: ObjectID(request.params.id) });
 
-          if (!cruise) {
+          if (!cruiseResult) {
             return h.response({ "statusCode": 404, "message": "cruise not found for that id" }).code(404);          
           }
 
-          cruise = cruiseResult;
+          if (!request.auth.credentials.scope.includes('admin')) {
+            // if (cruiseResult.cruise_hidden || !cruiseResult.cruise_access_list.includes(request.auth.credentials.id)) {
+            if (cruiseResult.cruise_hidden) {
+              return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to retrieve this cruise" }).code(401);
+            }
+          }
 
         }
         catch (err) {

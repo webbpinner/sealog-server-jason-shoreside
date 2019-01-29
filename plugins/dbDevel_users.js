@@ -56,7 +56,7 @@ exports.plugin = {
     console.log("Searching for Users Collection");
     try {
       const result = await db.listCollections({ name:usersTable }).toArray();
-      if (result[0]) {
+      if (result.length > 0) {
         console.log("Users Collection is present... dropping it");
         try {
           await db.dropCollection(usersTable);
