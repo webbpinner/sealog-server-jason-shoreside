@@ -97,7 +97,7 @@ exports.plugin = {
       async handler(request, h) {
 
         const db = request.mongo.db;
-        const ObjectID = request.mongo.ObjectID;
+        // const ObjectID = request.mongo.ObjectID;
 
         const query = {};
 
@@ -117,12 +117,7 @@ exports.plugin = {
 
         // Cruise ID filtering... if using this then there's no reason to use other filters
         if (request.query.cruise_id) {
-          try {
-            query.cruise_id = new ObjectID(request.query.cruise_id);
-          }
-          catch (err) {
-            return h.response({ statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters" }).code(400);
-          }
+          query.cruise_id = request.query.cruise_id;
         }
         else {
 

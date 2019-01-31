@@ -102,7 +102,7 @@ exports.plugin = {
       async handler(request, h) {
 
         const db = request.mongo.db;
-        const ObjectID = request.mongo.ObjectID;
+        // const ObjectID = request.mongo.ObjectID;
 
         const query = {};
 
@@ -122,12 +122,7 @@ exports.plugin = {
 
         // Lowering ID filtering... if using this then there's no reason to use other filters
         if (request.query.lowering_id) {
-          try {
-            query.lowering_id = new ObjectID(request.query.lowering_id);
-          }
-          catch (err) {
-            return h.response({ statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters" }).code(400);
-          }
+          query.lowering_id = request.query.lowering_id;
         }
         else {
 
@@ -557,7 +552,14 @@ exports.plugin = {
         const db = request.mongo.db;
         const ObjectID = request.mongo.ObjectID;
 
-        const query = { _id: new ObjectID(request.params.id) };
+        const query = {};
+
+        try {
+          query._id = new ObjectID(request.params.id);
+        }
+        catch (err) {
+          return h.response({ statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters" }).code(400);
+        }
 
         try {
           const result = await db.collection(loweringsTable).findOne(query);
