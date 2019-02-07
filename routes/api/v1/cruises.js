@@ -215,6 +215,7 @@ exports.plugin = {
               cruise_pi: Joi.string().allow(''),
               cruise_participants: Joi.array().items(Joi.string().allow('')),
               cruise_files: Joi.array().items(Joi.string()),
+              cruise_additional_meta: Joi.object(),
               cruise_tags: Joi.array().items(Joi.string().allow('')),
               cruise_hidden: Joi.boolean(),
               cruise_access_list: Joi.array().items(Joi.string())
@@ -315,6 +316,7 @@ exports.plugin = {
               cruise_pi: Joi.string().allow(''),
               cruise_participants: Joi.array().items(Joi.string().allow('')),
               cruise_files: Joi.array().items(Joi.string()),
+              cruise_additional_meta: Joi.object(),
               cruise_tags: Joi.array().items(Joi.string().allow('')),
               cruise_hidden: Joi.boolean(),
               cruise_access_list: Joi.array().items(Joi.string())
@@ -403,6 +405,7 @@ exports.plugin = {
             cruise_pi: Joi.string().allow('').required(),
             cruise_location: Joi.string().allow('').required(),
             cruise_participants: Joi.array().items(Joi.string().allow('')).required(),
+            cruise_additional_meta: Joi.object().required(),
             cruise_tags: Joi.array().items(Joi.string().allow('')).required(),
             cruise_hidden: Joi.boolean().required(),
             cruise_access_list: Joi.array().items(Joi.string()).required()
@@ -564,6 +567,7 @@ exports.plugin = {
             cruise_location: Joi.string().allow('').optional(),
             cruise_pi: Joi.string().allow('').optional(),
             cruise_participants: Joi.array().items(Joi.string()).optional(),
+            cruise_additional_meta: Joi.object().optional(),
             cruise_tags: Joi.array().items(Joi.string()).optional(),
             cruise_hidden: Joi.boolean().optional(),
             cruise_files: Joi.array().items(Joi.string()).optional(),
