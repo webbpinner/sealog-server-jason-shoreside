@@ -1,5 +1,3 @@
-
-
 const Joi = require('joi');
 const Fs = require('fs');
 const Tmp = require('tmp');
@@ -265,6 +263,7 @@ exports.plugin = {
 
           if (!request.auth.credentials.scope.includes('admin')) {
             if (result.cruise_hidden || !result.cruise_access_list.includes(request.auth.credentials.id)) {
+            // if (result.cruise_hidden) {
               return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to retrieve this cruise" }).code(401);
             }
           }
@@ -470,6 +469,7 @@ exports.plugin = {
 
           if (!request.auth.credentials.scope.includes('admin')) {
             if (result.cruise_hidden || !result.cruise_access_list.includes(request.auth.credentials.id)) {
+            // if (result.cruise_hidden) {
               return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to edit this cruise" }).code(401);
             }
           }
@@ -497,7 +497,6 @@ exports.plugin = {
           delete request.payload.cruise_files;
         }
         
-        // console.log("updating cruise");
         try {
           await db.collection(cruisesTable).updateOne(query, { $set: request.payload });
         }

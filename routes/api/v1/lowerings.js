@@ -1,5 +1,3 @@
-
-
 const Joi = require('joi');
 const Fs = require('fs');
 const Tmp = require('tmp');
@@ -203,6 +201,7 @@ exports.plugin = {
               stop_ts: Joi.date().iso(),
               lowering_description: Joi.string().allow(''),
               lowering_files: Joi.array().items(Joi.string()),
+              lowering_additional_meta: Joi.object(),
               lowering_tags: Joi.array().items(Joi.string().allow('')),
               lowering_location: Joi.string().allow(''),
               lowering_hidden: Joi.boolean(),
@@ -254,6 +253,7 @@ exports.plugin = {
 
           if (!request.auth.credentials.scope.includes('admin')) {
             if (result.lowering_hidden || !result.lowering_access_list.includes(request.auth.credentials.id)) {
+            // if (result.lowering_hidden) {
               return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to retrieve this lowering" }).code(401);
             }
           }
@@ -301,10 +301,11 @@ exports.plugin = {
               stop_ts: Joi.date().iso(),
               lowering_description: Joi.string().allow(''),
               lowering_files: Joi.array().items(Joi.string()),
+              lowering_additional_meta: Joi.object(),
               lowering_tags: Joi.array().items(Joi.string().allow('')),
               lowering_location: Joi.string().allow(''),
-              lowering_hidden: Joi.boolean(),
               lowering_access_list: Joi.array().items(Joi.string())
+              lowering_hidden: Joi.boolean(),
             }),
             400: Joi.object({
               statusCode: Joi.number().integer(),
@@ -397,6 +398,7 @@ exports.plugin = {
             start_ts: Joi.date().iso().required(),
             stop_ts: Joi.date().iso().required(),
             lowering_description: Joi.string().allow('').required(),
+            lowering_additional_meta: Joi.object().required(),
             lowering_tags: Joi.array().items(Joi.string().allow('')).required(),
             lowering_location: Joi.string().allow('').required(),
             lowering_hidden: Joi.boolean().required(),
@@ -461,6 +463,7 @@ exports.plugin = {
 
           if (!request.auth.credentials.scope.includes('admin')) {
             if (result.lowering_hidden || !result.lowering_access_list.includes(request.auth.credentials.id)) {
+            // if (result.lowering_hidden) {
               return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to edit this lowering" }).code(401);
             }
           }
@@ -513,6 +516,7 @@ exports.plugin = {
             start_ts: Joi.date().iso().optional(),
             stop_ts: Joi.date().iso().optional(),
             lowering_description: Joi.string().allow('').optional(),
+            lowering_additional_meta: Joi.object().options(),
             lowering_tags: Joi.array().items(Joi.string().allow('')).optional(),
             lowering_location: Joi.string().allow('').optional(),
             lowering_hidden: Joi.boolean().optional(),
@@ -558,6 +562,7 @@ exports.plugin = {
           query._id = new ObjectID(request.params.id);
         }
         catch (err) {
+          console.log("ERROR:", err);
           return h.response({ statusCode: 400, error: "Invalid argument", message: "id must be a single String of 12 bytes or a string of 24 hex characters" }).code(400);
         }
 
