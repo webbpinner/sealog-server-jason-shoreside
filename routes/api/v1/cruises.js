@@ -119,17 +119,27 @@ exports.plugin = {
         }
         else {
 
-          //PI filtering
+          // PI filtering
           if (request.query.cruise_pi) {
             query.cruise_pi = request.query.cruise_pi;
           }
 
-          //Location filtering
+          // Location filtering
           if (request.query.cruise_location) {
             query.cruise_location = request.query.cruise_location;
           }
 
-          //Time filtering
+          // Tag filtering
+          if (request.query.cruise_tags) {
+            if (Array.isArray(request.query.cruise_tags)) {
+              query.cruise_tags  = { $in: request.query.cruise_tags };
+            }
+            else {
+              query.cruise_tags  = request.query.cruise_tags;
+            }
+          }
+
+          // Time filtering
           if ((request.query.startTS) || (request.query.stopTS)) {
             let startTS = new Date("1970-01-01T00:00:00.000Z");
             let stopTS = new Date();
@@ -157,10 +167,10 @@ exports.plugin = {
             const mod_cruises = cruises.map((cruise) => {
 
               try {
-                cruise.cruise_files = Fs.readdirSync(CRUISE_PATH + '/' + cruise._id);
+                cruise.cruise_additional_meta.cruise_files = Fs.readdirSync(CRUISE_PATH + '/' + cruise._id);
               }
               catch (error) {
-                cruise.cruise_files = [];
+                cruise.cruise_additional_meta.cruise_files = [];
               }
 
               return _renameAndClearFields(cruise);
@@ -193,6 +203,10 @@ exports.plugin = {
             cruise_id: Joi.string().optional(),
             cruise_location: Joi.string().optional(),
             cruise_pi: Joi.string().optional(),
+            cruise_tags: Joi.alternatives().try(
+              Joi.string(),
+              Joi.array().items(Joi.string())
+            ).optional(),
             offset: Joi.number().integer().min(0).optional(),
             limit: Joi.number().integer().min(1).optional()
           }).optional(),
@@ -205,14 +219,14 @@ exports.plugin = {
             200: Joi.array().items(Joi.object({
               id: Joi.object(),
               cruise_id: Joi.string(),
-              cruise_name: Joi.string().allow(''),
+              // cruise_name: Joi.string().allow(''),
               cruise_location: Joi.string().allow(''),
               start_ts: Joi.date().iso(),
               stop_ts: Joi.date().iso(),
-              cruise_description: Joi.string().allow(''),
+              // cruise_description: Joi.string().allow(''),
               cruise_pi: Joi.string().allow(''),
-              cruise_participants: Joi.array().items(Joi.string().allow('')),
-              cruise_files: Joi.array().items(Joi.string()),
+              // cruise_participants: Joi.array().items(Joi.string().allow('')),
+              // cruise_files: Joi.array().items(Joi.string()),
               cruise_additional_meta: Joi.object(),
               cruise_tags: Joi.array().items(Joi.string().allow('')),
               cruise_hidden: Joi.boolean(),
@@ -277,10 +291,10 @@ exports.plugin = {
         }
 
         try {
-          cruise.cruise_files = Fs.readdirSync(CRUISE_PATH + '/' + request.params.id);
+          cruise.cruise_additional_meta.cruise_files = Fs.readdirSync(CRUISE_PATH + '/' + request.params.id);
         }
         catch (error) {
-          cruise.cruise_files = [];
+          cruise.cruise_additional_meta.cruise_files = [];
         }
 
         cruise = _renameAndClearFields(cruise);
@@ -307,14 +321,14 @@ exports.plugin = {
             200: Joi.object({
               id: Joi.object(),
               cruise_id: Joi.string(),
-              cruise_name: Joi.string().allow(''),
+              // cruise_name: Joi.string().allow(''),
               cruise_location: Joi.string().allow(''),
               start_ts: Joi.date().iso(),
               stop_ts: Joi.date().iso(),
-              cruise_description: Joi.string().allow(''),
+              // cruise_description: Joi.string().allow(''),
               cruise_pi: Joi.string().allow(''),
-              cruise_participants: Joi.array().items(Joi.string().allow('')),
-              cruise_files: Joi.array().items(Joi.string()),
+              // cruise_participants: Joi.array().items(Joi.string().allow('')),
+              // cruise_files: Joi.array().items(Joi.string()),
               cruise_additional_meta: Joi.object(),
               cruise_tags: Joi.array().items(Joi.string().allow('')),
               cruise_hidden: Joi.boolean(),
@@ -397,13 +411,13 @@ exports.plugin = {
           payload: {
             id: Joi.string().length(24).optional(),
             cruise_id: Joi.string().required(),
-            cruise_name: Joi.string().allow('').required(),
-            cruise_description: Joi.string().allow('').required(),
+            // cruise_name: Joi.string().allow('').required(),
+            // cruise_description: Joi.string().allow('').required(),
             start_ts: Joi.date().iso().required(),
             stop_ts: Joi.date().iso().required(),
             cruise_pi: Joi.string().allow('').required(),
             cruise_location: Joi.string().allow('').required(),
-            cruise_participants: Joi.array().items(Joi.string().allow('')).required(),
+            // cruise_participants: Joi.array().items(Joi.string().allow('')).required(),
             cruise_additional_meta: Joi.object().required(),
             cruise_tags: Joi.array().items(Joi.string().allow('')).required(),
             cruise_hidden: Joi.boolean().required(),
@@ -483,9 +497,9 @@ exports.plugin = {
         }
 
         //move files from tmp directory to permanent directory
-        if (request.payload.cruise_files) {
+        if (request.payload.cruise_additional_meta && request.payload.cruise_additional_meta.cruise_files) {
           try {
-            request.payload.cruise_files.map((file) => {
+            request.payload.cruise_additional_meta.cruise_files.map((file) => {
               // console.log("move files from", Path.join(Tmp.tmpdir,file), "to", Path.join(CRUISE_PATH, request.params.id));
               _mvFilesToDir(Path.join(Tmp.tmpdir,file), Path.join(CRUISE_PATH, request.params.id));
             });
@@ -494,7 +508,7 @@ exports.plugin = {
             return h.response({ "statusCode": 503, "error": "File Error", 'message': 'unabled to upload files. Verify directory ' + Path.join(CRUISE_PATH, request.params.id) + ' exists'  }).code(503);
           }
 
-          delete request.payload.cruise_files;
+          delete request.payload.cruise_additional_meta.cruise_files;
         }
         
         try {
@@ -559,17 +573,17 @@ exports.plugin = {
           }),
           payload: Joi.object({
             cruise_id: Joi.string().optional(),
-            cruise_name: Joi.string().allow('').optional(),
+            // cruise_name: Joi.string().allow('').optional(),
             start_ts: Joi.date().iso().optional(),
             stop_ts: Joi.date().iso().optional(),
-            cruise_description: Joi.string().allow('').optional(),
+            // cruise_description: Joi.string().allow('').optional(),
             cruise_location: Joi.string().allow('').optional(),
             cruise_pi: Joi.string().allow('').optional(),
-            cruise_participants: Joi.array().items(Joi.string()).optional(),
+            // cruise_participants: Joi.array().items(Joi.string()).optional(),
             cruise_additional_meta: Joi.object().optional(),
             cruise_tags: Joi.array().items(Joi.string()).optional(),
             cruise_hidden: Joi.boolean().optional(),
-            cruise_files: Joi.array().items(Joi.string()).optional(),
+            // cruise_files: Joi.array().items(Joi.string()).optional(),
             cruise_access_list: Joi.array().items(Joi.string()).optional()
           }).required().min(1),
           options: {

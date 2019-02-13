@@ -124,6 +124,21 @@ exports.plugin = {
         }
         else {
 
+          // Location filtering
+          if (request.query.lowering_location) {
+            query.lowering_location = request.query.lowering_location;
+          }
+
+          // Tag filtering
+          if (request.query.lowering_tags) {
+            if (Array.isArray(request.query.lowering_tags)) {
+              query.lowering_tags  = { $in: request.query.lowering_tags };
+            }
+            else {
+              query.lowering_tags  = request.query.lowering_tags;
+            }
+          }
+
           //Time filtering
           if ((request.query.startTS) || (request.query.stopTS)) {
             let startTS = new Date("1970-01-01T00:00:00.000Z");
@@ -152,10 +167,10 @@ exports.plugin = {
             const mod_lowerings = lowerings.map((result) => {
 
               try {
-                result.lowering_files = Fs.readdirSync(LOWERING_PATH + '/' + result._id);
+                result.lowering_additional_meta.lowering_files = Fs.readdirSync(LOWERING_PATH + '/' + result._id);
               }
               catch (error) {
-                result.lowering_files = [];
+                result.lowering_additional_meta.lowering_files = [];
               }
 
               return _renameAndClearFields(result);
@@ -185,6 +200,11 @@ exports.plugin = {
             lowering_id: Joi.string().optional(),
             startTS: Joi.date().iso(),
             stopTS: Joi.date().iso(),
+            lowering_location: Joi.string().optional(),
+            lowering_tags: Joi.alternatives().try(
+              Joi.string(),
+              Joi.array().items(Joi.string())
+            ).optional(),
             offset: Joi.number().integer().min(0).optional(),
             limit: Joi.number().integer().min(1).optional()
           }).optional(),
@@ -199,8 +219,8 @@ exports.plugin = {
               lowering_id: Joi.string(),
               start_ts: Joi.date().iso(),
               stop_ts: Joi.date().iso(),
-              lowering_description: Joi.string().allow(''),
-              lowering_files: Joi.array().items(Joi.string()),
+              // lowering_description: Joi.string().allow(''),
+              // lowering_files: Joi.array().items(Joi.string()),
               lowering_additional_meta: Joi.object(),
               lowering_tags: Joi.array().items(Joi.string().allow('')),
               lowering_location: Joi.string().allow(''),
@@ -267,10 +287,10 @@ exports.plugin = {
         }
 
         try {
-          lowering.lowering_files = Fs.readdirSync(LOWERING_PATH + '/' + request.params.id);
+          lowering.lowering_additional_meta.lowering_files = Fs.readdirSync(LOWERING_PATH + '/' + request.params.id);
         }
         catch (error) {
-          lowering.lowering_files = [];
+          lowering.lowering_additional_meta.lowering_files = [];
         }
 
         lowering = _renameAndClearFields(lowering);
@@ -299,13 +319,13 @@ exports.plugin = {
               lowering_id: Joi.string(),
               start_ts: Joi.date().iso(),
               stop_ts: Joi.date().iso(),
-              lowering_description: Joi.string().allow(''),
-              lowering_files: Joi.array().items(Joi.string()),
+              // lowering_description: Joi.string().allow(''),
+              // lowering_files: Joi.array().items(Joi.string()),
               lowering_additional_meta: Joi.object(),
               lowering_tags: Joi.array().items(Joi.string().allow('')),
               lowering_location: Joi.string().allow(''),
-              lowering_access_list: Joi.array().items(Joi.string())
-              lowering_hidden: Joi.boolean(),
+              lowering_access_list: Joi.array().items(Joi.string()),
+              lowering_hidden: Joi.boolean()
             }),
             400: Joi.object({
               statusCode: Joi.number().integer(),
@@ -397,7 +417,7 @@ exports.plugin = {
             lowering_id: Joi.string().required(),
             start_ts: Joi.date().iso().required(),
             stop_ts: Joi.date().iso().required(),
-            lowering_description: Joi.string().allow('').required(),
+            // lowering_description: Joi.string().allow('').required(),
             lowering_additional_meta: Joi.object().required(),
             lowering_tags: Joi.array().items(Joi.string().allow('')).required(),
             lowering_location: Joi.string().allow('').required(),
@@ -474,10 +494,10 @@ exports.plugin = {
           return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);
         }
 
-        if (request.payload.lowering_files) {
+        if (request.payload.lowering_additional_meta && request.payload.lowering_additional_meta.lowering_files) {
           //move files from tmp directory to permanent directory
           try {
-            request.payload.lowering_files.map((file) => {
+            request.payload.lowering_additional_meta.lowering_files.map((file) => {
               // console.log("move files from", Path.join(Tmp.tmpdir,file), "to", Path.join(LOWERING_PATH, request.params.id));
               _mvFilesToDir(Path.join(Tmp.tmpdir,file), Path.join(LOWERING_PATH, request.params.id));
             });
@@ -515,12 +535,12 @@ exports.plugin = {
             lowering_id: Joi.string().optional(),
             start_ts: Joi.date().iso().optional(),
             stop_ts: Joi.date().iso().optional(),
-            lowering_description: Joi.string().allow('').optional(),
-            lowering_additional_meta: Joi.object().options(),
+            // lowering_description: Joi.string().allow('').optional(),
+            lowering_additional_meta: Joi.object().optional(),
             lowering_tags: Joi.array().items(Joi.string().allow('')).optional(),
             lowering_location: Joi.string().allow('').optional(),
             lowering_hidden: Joi.boolean().optional(),
-            lowering_files: Joi.array().items(Joi.string()).optional(),
+            // lowering_files: Joi.array().items(Joi.string()).optional(),
             lowering_access_list: Joi.array().items(Joi.string()).optional()
           }).required().min(1),
           options: {
