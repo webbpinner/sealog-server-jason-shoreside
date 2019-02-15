@@ -219,14 +219,10 @@ exports.plugin = {
             200: Joi.array().items(Joi.object({
               id: Joi.object(),
               cruise_id: Joi.string(),
-              // cruise_name: Joi.string().allow(''),
               cruise_location: Joi.string().allow(''),
               start_ts: Joi.date().iso(),
               stop_ts: Joi.date().iso(),
-              // cruise_description: Joi.string().allow(''),
               cruise_pi: Joi.string().allow(''),
-              // cruise_participants: Joi.array().items(Joi.string().allow('')),
-              // cruise_files: Joi.array().items(Joi.string()),
               cruise_additional_meta: Joi.object(),
               cruise_tags: Joi.array().items(Joi.string().allow('')),
               cruise_hidden: Joi.boolean(),
@@ -321,14 +317,10 @@ exports.plugin = {
             200: Joi.object({
               id: Joi.object(),
               cruise_id: Joi.string(),
-              // cruise_name: Joi.string().allow(''),
               cruise_location: Joi.string().allow(''),
               start_ts: Joi.date().iso(),
               stop_ts: Joi.date().iso(),
-              // cruise_description: Joi.string().allow(''),
               cruise_pi: Joi.string().allow(''),
-              // cruise_participants: Joi.array().items(Joi.string().allow('')),
-              // cruise_files: Joi.array().items(Joi.string()),
               cruise_additional_meta: Joi.object(),
               cruise_tags: Joi.array().items(Joi.string().allow('')),
               cruise_hidden: Joi.boolean(),
@@ -411,13 +403,10 @@ exports.plugin = {
           payload: {
             id: Joi.string().length(24).optional(),
             cruise_id: Joi.string().required(),
-            // cruise_name: Joi.string().allow('').required(),
-            // cruise_description: Joi.string().allow('').required(),
             start_ts: Joi.date().iso().required(),
             stop_ts: Joi.date().iso().required(),
             cruise_pi: Joi.string().allow('').required(),
             cruise_location: Joi.string().allow('').required(),
-            // cruise_participants: Joi.array().items(Joi.string().allow('')).required(),
             cruise_additional_meta: Joi.object().required(),
             cruise_tags: Joi.array().items(Joi.string().allow('')).required(),
             cruise_hidden: Joi.boolean().required(),
@@ -573,18 +562,14 @@ exports.plugin = {
           }),
           payload: Joi.object({
             cruise_id: Joi.string().optional(),
-            // cruise_name: Joi.string().allow('').optional(),
             start_ts: Joi.date().iso().optional(),
             stop_ts: Joi.date().iso().optional(),
-            // cruise_description: Joi.string().allow('').optional(),
             cruise_location: Joi.string().allow('').optional(),
             cruise_pi: Joi.string().allow('').optional(),
-            // cruise_participants: Joi.array().items(Joi.string()).optional(),
             cruise_additional_meta: Joi.object().optional(),
             cruise_tags: Joi.array().items(Joi.string()).optional(),
             cruise_hidden: Joi.boolean().optional(),
-            // cruise_files: Joi.array().items(Joi.string()).optional(),
-            cruise_access_list: Joi.array().items(Joi.string()).optional()
+            // cruise_access_list: Joi.array().items(Joi.string()).optional()
           }).required().min(1),
           options: {
             allowUnknown: true

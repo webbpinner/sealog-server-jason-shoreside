@@ -219,13 +219,11 @@ exports.plugin = {
               lowering_id: Joi.string(),
               start_ts: Joi.date().iso(),
               stop_ts: Joi.date().iso(),
-              // lowering_description: Joi.string().allow(''),
-              // lowering_files: Joi.array().items(Joi.string()),
               lowering_additional_meta: Joi.object(),
               lowering_tags: Joi.array().items(Joi.string().allow('')),
               lowering_location: Joi.string().allow(''),
-              lowering_hidden: Joi.boolean(),
-              lowering_access_list: Joi.array().items(Joi.string())
+              lowering_access_list: Joi.array().items(Joi.string()),
+              lowering_hidden: Joi.boolean()
             })),
             400: Joi.object({
               statusCode: Joi.number().integer(),
@@ -319,8 +317,6 @@ exports.plugin = {
               lowering_id: Joi.string(),
               start_ts: Joi.date().iso(),
               stop_ts: Joi.date().iso(),
-              // lowering_description: Joi.string().allow(''),
-              // lowering_files: Joi.array().items(Joi.string()),
               lowering_additional_meta: Joi.object(),
               lowering_tags: Joi.array().items(Joi.string().allow('')),
               lowering_location: Joi.string().allow(''),
@@ -417,12 +413,11 @@ exports.plugin = {
             lowering_id: Joi.string().required(),
             start_ts: Joi.date().iso().required(),
             stop_ts: Joi.date().iso().required(),
-            // lowering_description: Joi.string().allow('').required(),
             lowering_additional_meta: Joi.object().required(),
             lowering_tags: Joi.array().items(Joi.string().allow('')).required(),
             lowering_location: Joi.string().allow('').required(),
-            lowering_hidden: Joi.boolean().required(),
-            lowering_access_list: Joi.array().items(Joi.string()).required()
+            lowering_access_list: Joi.array().items(Joi.string()).required(),
+            lowering_hidden: Joi.boolean().required()
           },
           options: {
             allowUnknown: true
@@ -498,12 +493,11 @@ exports.plugin = {
           //move files from tmp directory to permanent directory
           try {
             request.payload.lowering_additional_meta.lowering_files.map((file) => {
-              // console.log("move files from", Path.join(Tmp.tmpdir,file), "to", Path.join(LOWERING_PATH, request.params.id));
               _mvFilesToDir(Path.join(Tmp.tmpdir,file), Path.join(LOWERING_PATH, request.params.id));
             });
           }
           catch (err) {
-            // console.log(err)
+            console.log("ERROR:", err)
             return h.response({ "statusCode": 503, "error": "File Error", 'message': 'unabled to upload files. Verify directory ' + Path.join(LOWERING_PATH, request.params.id) + ' exists'  }).code(503);
           }
           
@@ -535,13 +529,11 @@ exports.plugin = {
             lowering_id: Joi.string().optional(),
             start_ts: Joi.date().iso().optional(),
             stop_ts: Joi.date().iso().optional(),
-            // lowering_description: Joi.string().allow('').optional(),
             lowering_additional_meta: Joi.object().optional(),
             lowering_tags: Joi.array().items(Joi.string().allow('')).optional(),
             lowering_location: Joi.string().allow('').optional(),
-            lowering_hidden: Joi.boolean().optional(),
-            // lowering_files: Joi.array().items(Joi.string()).optional(),
-            lowering_access_list: Joi.array().items(Joi.string()).optional()
+            lowering_access_list: Joi.array().items(Joi.string()).optional(),
+            lowering_hidden: Joi.boolean().optional()
           }).required().min(1),
           options: {
             allowUnknown: true
