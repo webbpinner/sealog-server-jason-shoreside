@@ -192,7 +192,7 @@ exports.plugin = {
             authorization: Joi.string().required()
           },
           params: {
-            params: Joi.string().required()
+            param: Joi.string().required()
           },
           options: {
             allowUnknown: true
