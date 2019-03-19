@@ -161,14 +161,16 @@ exports.plugin = {
       async handler(request, h) {
 
         const filePath = Path.join(CRUISE_PATH, request.params.file);
+        const fileName = Path.basename(request.params.file);
 
         try {
           return h.file(filePath, {
             mode: 'attachment',
-            filename: req.params.file
+            filename: req.params.fileName
           });
         }
         catch (err) {
+          console.log(err)
           return h.response({ error: "File not found", message: "Could not find file " + request.params.file, statusCode: 404 }).code(404);
         }
       },
@@ -226,6 +228,7 @@ exports.plugin = {
       async handler(request, h) {
 
         const filePath = Path.join(CRUISE_PATH, request.params.file);
+
         try {
           await handleFileDelete(filePath);
         }
@@ -382,14 +385,16 @@ exports.plugin = {
       async handler(request, h) {
 
         const filePath = Path.join(LOWERING_PATH, request.params.file);
+        const fileName = Path.basename(request.params.file);
 
         try {
           return h.file(filePath, {
             mode: 'attachment',
-            filename: req.params.file
+            filename: fileName
           });
         }
         catch (err) {
+          console.log(err)
           return h.response({ error: "File not found", message: "Could not find file " + request.params.file, statusCode: 404 }).code(404);
         }
       },
