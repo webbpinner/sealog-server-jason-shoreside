@@ -151,7 +151,8 @@ exports.plugin = {
             allowUnknown: true
           }
         },
-        description: 'This route is used for reload files not yet associated with cruises back into filepond.'
+        description: 'This route is used for reload files not yet associated with cruises back into filepond.',
+        tags: ['cruises','auth','api','file_get']
       }
     });
 
@@ -194,7 +195,8 @@ exports.plugin = {
             allowUnknown: true
           }
         },
-        description: 'This route is used for serving files associated with cruises.'
+        description: 'This route is used for serving files associated with cruises.',
+        tags: ['cruises','auth','api','file_get']
       }
     });
 
@@ -225,7 +227,8 @@ exports.plugin = {
             allowUnknown: true
           }
         },
-        description: 'This route is used for deleting files managed with filepond not yet fully associated with a cruise.'
+        description: 'This route is used for deleting files managed with filepond not yet fully associated with a cruise.',
+        tags: ['cruises','auth','api','file_delete']
       }
     });
 
@@ -258,7 +261,8 @@ exports.plugin = {
             allowUnknown: true
           }
         },
-        description: 'This route is used for deleting files associated with cruises.'
+        description: 'This route is used for deleting files associated with cruises.',
+        tags: ['cruises','auth','api','file_delete']
       }
     });
 
@@ -382,7 +386,8 @@ exports.plugin = {
             allowUnknown: true
           }
         },
-        description: 'This route is used for reload files not yet associated with lowerings back into filepond.'
+        description: 'This route is used for reload files not yet associated with lowerings back into filepond.',
+        tags: ['lowerings','auth','api','file_get']
       }
     });
 
@@ -419,7 +424,8 @@ exports.plugin = {
             allowUnknown: true
           }
         },
-        description: 'This route is used for serving files associated with lowerings.'
+        description: 'This route is used for serving files associated with lowerings.',
+        tags: ['lowerings','auth','api','file_get']
       }
     });
 
@@ -450,7 +456,8 @@ exports.plugin = {
             allowUnknown: true
           }
         },
-        description: 'This route is used for deleting files managed with filepond not yet fully associated with a lowering.'
+        description: 'This route is used for deleting files managed with filepond not yet fully associated with a lowering.',
+        tags: ['lowerings','auth','api','file_delete']
       }
     });
 
@@ -483,7 +490,8 @@ exports.plugin = {
             allowUnknown: true
           }
         },
-        description: 'This route is used for deleting files associated with cruises.'
+        description: 'This route is used for deleting files associated with cruises.',
+        tags: ['lowerings','auth','api','file_delete']
       }
     });
 
@@ -537,7 +545,7 @@ exports.plugin = {
         description: 'Upload lowering file via filepond',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>cruise_managers</strong></p>',
-        tags: ['lowerings','auth','api', 'file_upload']
+        tags: ['lowerings','auth','api', 'file_upload'],
       }
     });
 
@@ -599,7 +607,8 @@ exports.plugin = {
           strategy: 'jwt',
           scope: ['admin', 'read_events']
         },
-        description: 'This route is used for serving image files for cameras.'
+        description: 'This route is used for serving image files for cameras.',
+        tags: ['api','auth']
       }
     });
 
@@ -623,7 +632,7 @@ exports.plugin = {
             })
           }
         },
-        tags: ['default','test']
+        tags: ['default']
       }
     });
 
@@ -648,7 +657,7 @@ exports.plugin = {
             })
           }
         },
-        tags: ['default','test']
+        tags: ['default','api']
       }
     });
   }
