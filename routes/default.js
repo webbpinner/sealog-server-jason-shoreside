@@ -166,7 +166,7 @@ exports.plugin = {
         try {
           return h.file(filePath, {
             mode: 'attachment',
-            filename: req.params.fileName
+            filename: request.params.fileName
           });
         }
         catch (err) {
