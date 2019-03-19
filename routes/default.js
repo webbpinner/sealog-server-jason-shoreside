@@ -157,10 +157,19 @@ exports.plugin = {
 
     server.route({
       method: 'GET',
-      path: CRUISE_ROUTE + '/{param*}',
-      handler: {
-        directory: {
-          path: CRUISE_PATH
+      path: CRUISE_ROUTE + '/{file*}',
+      async handler(request, h) {
+
+        const filePath = Path.join(CRUISE_PATH, request.params.file);
+
+        try {
+          return h.file(filePath, {
+            mode: 'attachment',
+            filename: req.params.file
+          });
+        }
+        catch (err) {
+          return h.response({ error: "File not found", message: "Could not find file " + request.params.file, statusCode: 404 }).code(404);
         }
       },
       config: {
@@ -213,10 +222,10 @@ exports.plugin = {
 
     server.route({
       method: 'DELETE',
-      path: CRUISE_ROUTE + '/{param*}',
+      path: CRUISE_ROUTE + '/{file*}',
       async handler(request, h) {
 
-        const filePath = Path.join(CRUISE_PATH, request.params.param);
+        const filePath = Path.join(CRUISE_PATH, request.params.file);
         try {
           await handleFileDelete(filePath);
         }
@@ -369,10 +378,19 @@ exports.plugin = {
 
     server.route({
       method: 'GET',
-      path: LOWERING_ROUTE + '/{param*}',
-      handler: {
-        directory: {
-          path: LOWERING_PATH
+      path: LOWERING_ROUTE + '/{file*}',
+      async handler(request, h) {
+
+        const filePath = Path.join(LOWERING_PATH, request.params.file);
+
+        try {
+          return h.file(filePath, {
+            mode: 'attachment',
+            filename: req.params.file
+          });
+        }
+        catch (err) {
+          return h.response({ error: "File not found", message: "Could not find file " + request.params.file, statusCode: 404 }).code(404);
         }
       },
       config: {

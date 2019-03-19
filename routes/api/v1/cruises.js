@@ -568,8 +568,8 @@ exports.plugin = {
             cruise_pi: Joi.string().allow('').optional(),
             cruise_additional_meta: Joi.object().optional(),
             cruise_tags: Joi.array().items(Joi.string()).optional(),
-            cruise_hidden: Joi.boolean().optional(),
-            // cruise_access_list: Joi.array().items(Joi.string()).optional()
+            // cruise_access_list: Joi.array().items(Joi.string()).optional(),
+            cruise_hidden: Joi.boolean().optional()
           }).required().min(1),
           options: {
             allowUnknown: true
