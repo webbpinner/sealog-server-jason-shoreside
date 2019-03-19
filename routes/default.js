@@ -165,7 +165,7 @@ exports.plugin = {
 
         try {
           return h.file(filePath, {
-            mode: 'attachment',
+            // mode: 'attachment',
             // filename: fileName,
             confine: false
           });
