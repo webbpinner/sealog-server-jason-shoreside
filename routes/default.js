@@ -164,24 +164,6 @@ exports.plugin = {
           path: CRUISE_PATH,
         }
       },
-      // handler(request, h) {
-
-        // const filePath = Path.join(CRUISE_PATH, request.params.file);
-        // console.log(filePath)
-        // // const fileName = Path.basename(request.params.file);
-
-        // try {
-        //   return h.file(filePath, {
-        //     mode: 'attachment',
-        //     // filename: fileName,
-        //     confine: false
-        //   });
-        // }
-        // catch (err) {
-        //   console.log(err)
-        //   return h.response({ error: "File not found", message: "Could not find file " + request.params.file, statusCode: 404 }).code(404);
-        // }
-      // },
       config: {
         auth: {
           strategy: 'jwt',
@@ -397,22 +379,10 @@ exports.plugin = {
 
     server.route({
       method: 'GET',
-      path: LOWERING_ROUTE + '/{file*}',
-      async handler(request, h) {
-
-        const filePath = Path.join(LOWERING_PATH, request.params.file);
-        const fileName = Path.basename(request.params.file);
-
-        try {
-          return h.file(filePath, {
-            mode: 'attachment',
-            // filename: fileName,
-            confine: false
-          });
-        }
-        catch (err) {
-          console.log(err)
-          return h.response({ error: "File not found", message: "Could not find file " + request.params.file, statusCode: 404 }).code(404);
+      path: LOWERING_ROUTE + '/{param*}',
+      handler: {
+        directory: {
+          path: LOWERING_PATH,
         }
       },
       config: {
@@ -423,6 +393,9 @@ exports.plugin = {
         validate: {
           headers: {
             authorization: Joi.string().required()
+          },
+          params: {
+            param: Joi.string().required()
           },
           options: {
             allowUnknown: true
@@ -610,6 +583,17 @@ exports.plugin = {
         auth: {
           strategy: 'jwt',
           scope: ['admin', 'read_events']
+        },
+        validate: {
+          headers: {
+            authorization: Joi.string().required()
+          },
+          params: {
+            param: Joi.string().required()
+          },
+          options: {
+            allowUnknown: true
+          }
         },
         description: 'This route is used for serving image files for cameras.',
         tags: ['api','auth']
