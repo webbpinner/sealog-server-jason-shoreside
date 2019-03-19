@@ -59,7 +59,7 @@ const handleFileDelete = (filePath) => {
 
 exports.plugin = {
   name: 'routes-default',
-  dependencies: ['hapi-mongodb'],
+  dependencies: ['hapi-mongodb', 'inert'],
   register: (server, options) => {
 
     server.route({
@@ -157,7 +157,7 @@ exports.plugin = {
 
     server.route({
       method: 'GET',
-      path: CRUISE_ROUTE + '/{file*}',
+      path: CRUISE_ROUTE + '/{file}',
       async handler(request, h) {
 
         const filePath = Path.join(CRUISE_PATH, request.params.file);
@@ -166,7 +166,7 @@ exports.plugin = {
 
         try {
           return h.file(filePath, {
-            // mode: 'attachment',
+            mode: 'attachment',
             // filename: fileName,
             confine: false
           });
