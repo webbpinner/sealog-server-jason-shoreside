@@ -157,7 +157,7 @@ exports.plugin = {
 
     server.route({
       method: 'GET',
-      path: CRUISE_ROUTE + '/{file}',
+      path: CRUISE_ROUTE + '/{param*}',
       handler: {
         directory: {
           path: CRUISE_PATH,
