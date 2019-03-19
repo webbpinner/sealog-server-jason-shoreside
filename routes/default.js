@@ -161,6 +161,7 @@ exports.plugin = {
       async handler(request, h) {
 
         const filePath = Path.join(CRUISE_PATH, request.params.file);
+        console.log(filePath)
         // const fileName = Path.basename(request.params.file);
 
         try {
