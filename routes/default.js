@@ -191,6 +191,9 @@ exports.plugin = {
           headers: {
             authorization: Joi.string().required()
           },
+          params: {
+            params: Joi.string().required()
+          },
           options: {
             allowUnknown: true
           }
@@ -223,6 +226,7 @@ exports.plugin = {
           headers: {
             authorization: Joi.string().required()
           },
+
           options: {
             allowUnknown: true
           }
