@@ -158,24 +158,29 @@ exports.plugin = {
     server.route({
       method: 'GET',
       path: CRUISE_ROUTE + '/{file}',
-      async handler(request, h) {
-
-        const filePath = Path.join(CRUISE_PATH, request.params.file);
-        console.log(filePath)
-        // const fileName = Path.basename(request.params.file);
-
-        try {
-          return h.file(filePath, {
-            mode: 'attachment',
-            // filename: fileName,
-            confine: false
-          });
-        }
-        catch (err) {
-          console.log(err)
-          return h.response({ error: "File not found", message: "Could not find file " + request.params.file, statusCode: 404 }).code(404);
+      handler: {
+        directory: {
+          path: CRUISE_PATH,
         }
       },
+      // handler(request, h) {
+
+        // const filePath = Path.join(CRUISE_PATH, request.params.file);
+        // console.log(filePath)
+        // // const fileName = Path.basename(request.params.file);
+
+        // try {
+        //   return h.file(filePath, {
+        //     mode: 'attachment',
+        //     // filename: fileName,
+        //     confine: false
+        //   });
+        // }
+        // catch (err) {
+        //   console.log(err)
+        //   return h.response({ error: "File not found", message: "Could not find file " + request.params.file, statusCode: 404 }).code(404);
+        // }
+      // },
       config: {
         auth: {
           strategy: 'jwt',
