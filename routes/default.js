@@ -161,12 +161,13 @@ exports.plugin = {
       async handler(request, h) {
 
         const filePath = Path.join(CRUISE_PATH, request.params.file);
-        const fileName = Path.basename(request.params.file);
+        // const fileName = Path.basename(request.params.file);
 
         try {
           return h.file(filePath, {
             mode: 'attachment',
-            filename: request.params.fileName
+            // filename: fileName,
+            confine: false
           });
         }
         catch (err) {
@@ -390,7 +391,8 @@ exports.plugin = {
         try {
           return h.file(filePath, {
             mode: 'attachment',
-            filename: fileName
+            // filename: fileName,
+            confine: false
           });
         }
         catch (err) {
