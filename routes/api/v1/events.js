@@ -301,6 +301,7 @@ exports.plugin = {
                 Converter.json2csv(_flattenJSON(mod_results), (err, csv) => {
 
                   if (err) {
+
                     throw err;
                   }
 
@@ -625,6 +626,9 @@ exports.plugin = {
             if (results.length > 0) {
 
               const mod_results = results.map((doc) => _renameAndClearFields(doc));
+
+              console.log("mod_results")
+              console.log(mod_results)
 
               if (request.query.format && request.query.format === "csv") {
                 Converter.json2csv(_flattenJSON(mod_results), (err, csv) => {
