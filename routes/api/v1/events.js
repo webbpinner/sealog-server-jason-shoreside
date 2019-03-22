@@ -645,7 +645,9 @@ exports.plugin = {
                   console.log("csv")
                   console.log(csv)
 
-                  return h.response(csv).code(200);
+                  return csv
+
+                  // return h.response(csv).code(200);
                 }, json2csvOptions);
               }
               else {
