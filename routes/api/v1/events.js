@@ -631,18 +631,18 @@ exports.plugin = {
 
               if (request.query.format && request.query.format === "csv") {
                 let mod_results2 = _flattenJSON(mod_results)
-                console.log("mod_results2")
-                console.log(mod_results2)
 
-                await Converter.json2csvAsync(mod_results2, json2csvOptions)
+                const results = await Converter.json2csvAsync(mod_results2, json2csvOptions)
                 .then((csv) => {
-
-                  return h.response(csv).code(200);
+                  return csv
                 })
                 .catch((err) => {
                   console.log(err)
                   throw err;    
                 })
+
+                return h.response(results).code(200);
+
               }
               else {
                 return h.response(mod_results).code(200);

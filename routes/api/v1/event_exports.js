@@ -1,5 +1,3 @@
-
-
 const Joi = require('joi');
 const Converter = require('json-2-csv');
 const Extend = require('jquery-extend');
