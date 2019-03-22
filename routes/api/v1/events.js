@@ -297,15 +297,16 @@ exports.plugin = {
               const mod_results = results.forEach(_renameAndClearFields);
 
               if (request.query.format && request.query.format === "csv") {
-                Converter.json2csv(_flattenJSON(mod_results), (err, csv) => {
+                const results = await Converter.json2csvAsync(_flattenJSON(mod_results), json2csvOptions)
+                .then((csv) => {
+                  return csv
+                })
+                .catch((err) => {
+                  console.log(err)
+                  throw err;    
+                })
 
-                  if (err) {
-
-                    throw err;
-                  }
-
-                  return h.response(csv).code(200);
-                }, json2csvOptions);
+                return h.response(results).code(200);
               }
               else {
                 return h.response(mod_results).code(200);
@@ -630,9 +631,7 @@ exports.plugin = {
               // console.log(mod_results)
 
               if (request.query.format && request.query.format === "csv") {
-                let mod_results2 = _flattenJSON(mod_results)
-
-                const results = await Converter.json2csvAsync(mod_results2, json2csvOptions)
+                const results = await Converter.json2csvAsync(_flattenJSON(mod_results), json2csvOptions)
                 .then((csv) => {
                   return csv
                 })
@@ -642,7 +641,6 @@ exports.plugin = {
                 })
 
                 return h.response(results).code(200);
-
               }
               else {
                 return h.response(mod_results).code(200);
@@ -947,14 +945,16 @@ exports.plugin = {
               const mod_results = results.map((doc) => _renameAndClearFields(doc));
 
               if (request.query.format && request.query.format === "csv") {
-                Converter.json2csv(_flattenJSON(mod_results), (err, csv) => {
+                const results = await Converter.json2csvAsync(_flattenJSON(mod_results), json2csvOptions)
+                .then((csv) => {
+                  return csv
+                })
+                .catch((err) => {
+                  console.log(err)
+                  throw err;    
+                })
 
-                  if (err) {
-                    throw err;
-                  }
-
-                  return h.response(csv).code(200);
-                }, json2csvOptions);
+                return h.response(results).code(200);
               }
               else {
                 return h.response(mod_results).code(200);

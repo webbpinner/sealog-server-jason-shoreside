@@ -14,8 +14,7 @@ const {
   cruisesTable
 } = require('../../../config/db_constants');
 
-const flattenJSON = (json) => {
-  // console.log("Pre-Export:", this.props.event_export.events)
+const _flattenJSON = (json) => {
   const exportData = json.map((event) => {
 
     const copiedEvent = Extend(true, {}, event);
@@ -26,7 +25,6 @@ const flattenJSON = (json) => {
 
           const elementName = `${data.data_source}_${data2.data_name}_value`;
           const elementUOM = `${data.data_source}_${data2.data_name}_uom`;
-          // console.log(elementName, data2.data_value, elementUOM, data2.data_uom)
           copiedEvent[elementName] = data2.data_value;
           copiedEvent[elementUOM] = data2.data_uom;
         });  
@@ -335,16 +333,15 @@ exports.plugin = {
               results.forEach(_renameAndClearFields);
 
               if (request.query.format && request.query.format === "csv") {
-                Converter.json2csv(flattenJSON(results), (err, csv) => {
-                  
-                  if (err) {
-                    throw err;
-                  }
+                const results = await Converter.json2csvAsync(_flattenJSON(mod_results), json2csvOptions)
+                .then((csv) => {
+                  return csv
+                })
+                .catch((err) => {
+                  console.log(err)
+                  throw err;    
+                })
 
-                  return h.response(csv).code(200);
-                }, json2csvOptions);
-              }
-              else {
                 return h.response(results).code(200);
               }
             }
@@ -680,14 +677,16 @@ exports.plugin = {
               results.forEach(_renameAndClearFields);
 
               if (request.query.format && request.query.format === "csv") {
-                Converter.json2csv(flattenJSON(results), (err, csv) => {
+                const results = await Converter.json2csvAsync(_flattenJSON(mod_results), json2csvOptions)
+                .then((csv) => {
+                  return csv
+                })
+                .catch((err) => {
+                  console.log(err)
+                  throw err;    
+                })
 
-                  if (err) {
-                    throw err;
-                  }
-
-                  return h.response(csv).code(200);
-                }, json2csvOptions);
+                return h.response(results).code(200);
               }
               else {
                 return h.response(results).code(200);
@@ -991,14 +990,16 @@ exports.plugin = {
               results.forEach(_renameAndClearFields);
 
               if (request.query.format && request.query.format === "csv") {
-                Converter.json2csv(flattenJSON(results), (err, csv) => {
+                const results = await Converter.json2csvAsync(_flattenJSON(mod_results), json2csvOptions)
+                .then((csv) => {
+                  return csv
+                })
+                .catch((err) => {
+                  console.log(err)
+                  throw err;    
+                })
 
-                  if (err) {
-                    throw err;
-                  }
-
-                  return h.response(csv).code(200);
-                }, json2csvOptions);
+                return h.response(results).code(200);
               }
               else {
                 return h.response(results).code(200);
