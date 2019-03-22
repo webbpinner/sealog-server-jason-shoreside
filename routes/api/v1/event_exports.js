@@ -333,7 +333,7 @@ exports.plugin = {
               results.forEach(_renameAndClearFields);
 
               if (request.query.format && request.query.format === "csv") {
-                const results = await Converter.json2csvAsync(_flattenJSON(mod_results), json2csvOptions)
+                const csv_results = await Converter.json2csvAsync(_flattenJSON(results), json2csvOptions)
                 .then((csv) => {
                   return csv
                 })
@@ -342,8 +342,10 @@ exports.plugin = {
                   throw err;    
                 })
 
-                return h.response(results).code(200);
+                return h.response(csv_results).code(200);
               }
+
+              return h.response(results).code(200);
             }
             else {
               return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
@@ -677,7 +679,7 @@ exports.plugin = {
               results.forEach(_renameAndClearFields);
 
               if (request.query.format && request.query.format === "csv") {
-                const results = await Converter.json2csvAsync(_flattenJSON(mod_results), json2csvOptions)
+                const csv_results = await Converter.json2csvAsync(_flattenJSON(results), json2csvOptions)
                 .then((csv) => {
                   return csv
                 })
@@ -686,7 +688,7 @@ exports.plugin = {
                   throw err;    
                 })
 
-                return h.response(results).code(200);
+                return h.response(csv_results).code(200);
               }
               else {
                 return h.response(results).code(200);
@@ -990,7 +992,7 @@ exports.plugin = {
               results.forEach(_renameAndClearFields);
 
               if (request.query.format && request.query.format === "csv") {
-                const results = await Converter.json2csvAsync(_flattenJSON(mod_results), json2csvOptions)
+                const csv_results = await Converter.json2csvAsync(_flattenJSON(results), json2csvOptions)
                 .then((csv) => {
                   return csv
                 })
@@ -999,7 +1001,7 @@ exports.plugin = {
                   throw err;    
                 })
 
-                return h.response(results).code(200);
+                return h.response(csv_results).code(200);
               }
               else {
                 return h.response(results).code(200);

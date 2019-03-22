@@ -200,8 +200,8 @@ exports.plugin = {
             // console.log("results:", results);
 
             if (results.length > 0) {
-              const mod_results = results.map((doc) => _renameAndClearFields(doc));
-              return h.response(mod_results).code(200);
+              results.forEach(_renameAndClearFields);
+              return h.response(results).code(200);
             }
  
             return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
@@ -294,10 +294,10 @@ exports.plugin = {
 
             if (results.length > 0) {
 
-              const mod_results = results.forEach(_renameAndClearFields);
+              results.forEach(_renameAndClearFields);
 
               if (request.query.format && request.query.format === "csv") {
-                const results = await Converter.json2csvAsync(_flattenJSON(mod_results), json2csvOptions)
+                const csv_results = await Converter.json2csvAsync(_flattenJSON(results), json2csvOptions)
                 .then((csv) => {
                   return csv
                 })
@@ -306,10 +306,10 @@ exports.plugin = {
                   throw err;    
                 })
 
-                return h.response(results).code(200);
+                return h.response(csv_results).code(200);
               }
               else {
-                return h.response(mod_results).code(200);
+                return h.response(results).code(200);
               }
             }
             else {
@@ -533,8 +533,8 @@ exports.plugin = {
             const results = await db.collection(eventsTable).find(query).sort( { ts: 1 } ).skip(offset).limit(limit).toArray();
 
             if (results.length > 0) {
-              const mod_results = results.map((doc) => _renameAndClearFields(doc));
-              return h.response(mod_results).code(200);
+              results.forEach(_renameAndClearFields);
+              return h.response(results).code(200);
             }
  
             return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
@@ -625,13 +625,10 @@ exports.plugin = {
 
             if (results.length > 0) {
 
-              const mod_results = results.map((doc) => _renameAndClearFields(doc));
-
-              // console.log("mod_results")
-              // console.log(mod_results)
+              results.forEach(_renameAndClearFields);
 
               if (request.query.format && request.query.format === "csv") {
-                const results = await Converter.json2csvAsync(_flattenJSON(mod_results), json2csvOptions)
+                const csv_results = await Converter.json2csvAsync(_flattenJSON(results), json2csvOptions)
                 .then((csv) => {
                   return csv
                 })
@@ -640,10 +637,10 @@ exports.plugin = {
                   throw err;    
                 })
 
-                return h.response(results).code(200);
+                return h.response(csv_results).code(200);
               }
               else {
-                return h.response(mod_results).code(200);
+                return h.response(results).code(200);
               }
             }
             else {
@@ -942,10 +939,10 @@ exports.plugin = {
 
             if (results.length > 0) {
 
-              const mod_results = results.map((doc) => _renameAndClearFields(doc));
+              results.forEach(_renameAndClearFields);
 
               if (request.query.format && request.query.format === "csv") {
-                const results = await Converter.json2csvAsync(_flattenJSON(mod_results), json2csvOptions)
+                const csv_results = await Converter.json2csvAsync(_flattenJSON(results), json2csvOptions)
                 .then((csv) => {
                   return csv
                 })
@@ -954,10 +951,10 @@ exports.plugin = {
                   throw err;    
                 })
 
-                return h.response(results).code(200);
+                return h.response(csv_results).code(200);
               }
               else {
-                return h.response(mod_results).code(200);
+                return h.response(results).code(200);
               }
             }
             else {
@@ -1059,8 +1056,8 @@ exports.plugin = {
             return h.response({ "statusCode": 404, 'message': 'No record found for id: ' + request.params.id }).code(404);
           }
 
-          const mod_result = _renameAndClearFields(result);
-          return h.response(mod_result).code(200);
+          results.forEach(_renameAndClearFields);
+          return h.response(results).code(200);
         }
         catch (err) {
           console.log(err);
