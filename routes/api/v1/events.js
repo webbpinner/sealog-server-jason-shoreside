@@ -634,21 +634,15 @@ exports.plugin = {
                 console.log("mod_results2")
                 console.log(mod_results2)
 
-                Converter.json2csv(mod_results2, (err, csv) => {
+                await Converter.json2csvAsync(mod_results2, json2csvOptions)
+                .then((csv) => {
 
-                  if (err) {
-                    console.log("Error with Converter")
-                    console.log(err)
-                    throw err;
-                  }
-    
-                  console.log("csv")
-                  console.log(csv)
-
-                  return csv
-
-                  // return h.response(csv).code(200);
-                }, json2csvOptions);
+                  return h.response(csv).code(200);
+                })
+                .catch((err) => {
+                  console.log(err)
+                  throw err;    
+                })
               }
               else {
                 return h.response(mod_results).code(200);
