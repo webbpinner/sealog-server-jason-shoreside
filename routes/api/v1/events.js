@@ -1202,8 +1202,7 @@ exports.plugin = {
 
           const diff = (new Date().getTime() - event.ts.getTime()) / 1000;
           if (Math.abs(Math.round(diff)) < THRESHOLD) {
-            event = _renameAndClearFields(event);
-            server.publish('/ws/status/newEvents', event);
+            server.publish('/ws/status/newEvents', _renameAndClearFields(event));
           }
 
           return h.response({ n: result.result.n, ok: result.result.ok, insertedCount: result.insertedCount, insertedId: result.insertedId }).code(201);
@@ -1445,8 +1444,7 @@ exports.plugin = {
           return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
         }
 
-        _renameAndClearFields(event);
-        server.publish('/ws/status/deleteEvents', event);
+        server.publish('/ws/status/deleteEvents', _renameAndClearFields(event));
 
         return h.response(event).code(204);
       },

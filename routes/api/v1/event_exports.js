@@ -344,8 +344,9 @@ exports.plugin = {
 
                 return h.response(csv_results).code(200);
               }
-
-              return h.response(results).code(200);
+              else {
+                return h.response(results).code(200);
+              }
             }
             else {
               return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
