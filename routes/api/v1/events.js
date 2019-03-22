@@ -638,6 +638,8 @@ exports.plugin = {
                 Converter.json2csv(mod_results2, (err, csv) => {
 
                   if (err) {
+                    console.log("Error with Converter")
+                    console.log(err)
                     throw err;
                   }
 
