@@ -631,7 +631,11 @@ exports.plugin = {
               console.log(mod_results)
 
               if (request.query.format && request.query.format === "csv") {
-                Converter.json2csv(_flattenJSON(mod_results), (err, csv) => {
+                let mod_results2 = _flattenJSON(mod_results)
+                console.log("mod_results2")
+                console.log(mod_results2)
+
+                Converter.json2csv(mod_results2, (err, csv) => {
 
                   if (err) {
                     throw err;
