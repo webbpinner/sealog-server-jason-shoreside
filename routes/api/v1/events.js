@@ -296,7 +296,6 @@ exports.plugin = {
 
               const mod_results = results.forEach(_renameAndClearFields);
 
-
               if (request.query.format && request.query.format === "csv") {
                 Converter.json2csv(_flattenJSON(mod_results), (err, csv) => {
 
@@ -627,8 +626,8 @@ exports.plugin = {
 
               const mod_results = results.map((doc) => _renameAndClearFields(doc));
 
-              console.log("mod_results")
-              console.log(mod_results)
+              // console.log("mod_results")
+              // console.log(mod_results)
 
               if (request.query.format && request.query.format === "csv") {
                 let mod_results2 = _flattenJSON(mod_results)
@@ -642,6 +641,9 @@ exports.plugin = {
                     console.log(err)
                     throw err;
                   }
+    
+                  console.log("csv")
+                  console.log(csv)
 
                   return h.response(csv).code(200);
                 }, json2csvOptions);
