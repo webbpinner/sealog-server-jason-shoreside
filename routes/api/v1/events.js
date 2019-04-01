@@ -298,23 +298,23 @@ exports.plugin = {
 
               if (request.query.format && request.query.format === "csv") {
                 const csv_results = await Converter.json2csvAsync(_flattenJSON(results), json2csvOptions)
-                .then((csv) => {
-                  return csv
-                })
-                .catch((err) => {
-                  console.log(err)
-                  throw err;    
-                })
+                  .then((csv) => {
+                  
+                    return csv;
+                  })
+                  .catch((err) => {
+
+                    console.log(err);
+                    throw err;    
+                  });
 
                 return h.response(csv_results).code(200);
               }
-              else {
-                return h.response(results).code(200);
-              }
+
+              return h.response(results).code(200);
             }
-            else {
-              return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
-            }
+
+            return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
           }
           catch (err) {
             console.log(err);
@@ -629,23 +629,23 @@ exports.plugin = {
 
               if (request.query.format && request.query.format === "csv") {
                 const csv_results = await Converter.json2csvAsync(_flattenJSON(results), json2csvOptions)
-                .then((csv) => {
-                  return csv
-                })
-                .catch((err) => {
-                  console.log(err)
-                  throw err;    
-                })
+                  .then((csv) => {
+
+                    return csv;
+                  })
+                  .catch((err) => {
+
+                    console.log(err);
+                    throw err;    
+                  });
 
                 return h.response(csv_results).code(200);
               }
-              else {
-                return h.response(results).code(200);
-              }
+
+              return h.response(results).code(200);
             }
-            else {
-              return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
-            }
+
+            return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
           }
           catch (err) {
             console.log(err);
@@ -943,23 +943,23 @@ exports.plugin = {
 
               if (request.query.format && request.query.format === "csv") {
                 const csv_results = await Converter.json2csvAsync(_flattenJSON(results), json2csvOptions)
-                .then((csv) => {
-                  return csv
-                })
-                .catch((err) => {
-                  console.log(err)
-                  throw err;    
-                })
+                  .then((csv) => {
+
+                    return csv;
+                  })
+                  .catch((err) => {
+
+                    console.log(err);
+                    throw err;    
+                  });
 
                 return h.response(csv_results).code(200);
               }
-              else {
-                return h.response(results).code(200);
-              }
+
+              return h.response(results).code(200);
             }
-            else {
-              return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
-            }
+
+            return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
           }
           catch (err) {
             console.log(err);
@@ -1056,8 +1056,7 @@ exports.plugin = {
             return h.response({ "statusCode": 404, 'message': 'No record found for id: ' + request.params.id }).code(404);
           }
 
-          results.forEach(_renameAndClearFields);
-          return h.response(results).code(200);
+          return h.response(_renameAndClearFields(result)).code(200);
         }
         catch (err) {
           console.log(err);
@@ -1125,7 +1124,7 @@ exports.plugin = {
         const db = request.mongo.db;
         const ObjectID = request.mongo.ObjectID;
 
-        let event = request.payload;
+        const event = request.payload;
 
         if (event.id) {
           try {

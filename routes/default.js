@@ -161,7 +161,7 @@ exports.plugin = {
       path: CRUISE_ROUTE + '/{param*}',
       handler: {
         directory: {
-          path: CRUISE_PATH,
+          path: CRUISE_PATH
         }
       },
       config: {
@@ -382,7 +382,7 @@ exports.plugin = {
       path: LOWERING_ROUTE + '/{param*}',
       handler: {
         directory: {
-          path: LOWERING_PATH,
+          path: LOWERING_PATH
         }
       },
       config: {
@@ -522,7 +522,7 @@ exports.plugin = {
         description: 'Upload lowering file via filepond',
         notes: '<p>Requires authorization via: <strong>JWT token</strong></p>\
           <p>Available to: <strong>cruise_managers</strong></p>',
-        tags: ['lowerings','auth','api', 'file_upload'],
+        tags: ['lowerings','auth','api', 'file_upload']
       }
     });
 
