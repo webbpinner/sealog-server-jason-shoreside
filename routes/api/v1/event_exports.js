@@ -210,8 +210,8 @@ exports.plugin = {
           };
 
           const aggregate = [];
-          aggregate.push({ $lookup: lookup });
           aggregate.push({ $match: query });
+          aggregate.push({ $lookup: lookup });
           aggregate.push({ $sort : { ts : 1 } });
 
           if (request.query.limit) { 
@@ -317,8 +317,8 @@ exports.plugin = {
           };
 
           const aggregate = [];
-          aggregate.push({ $lookup: lookup });
           aggregate.push({ $match: query });
+          aggregate.push({ $lookup: lookup });
           aggregate.push({ $sort : { ts : 1 } });
 
           if (request.query.limit) {
@@ -556,8 +556,8 @@ exports.plugin = {
           };
 
           const aggregate = [];
-          aggregate.push({ $lookup: lookup });
           aggregate.push({ $match: query });
+          aggregate.push({ $lookup: lookup });
           aggregate.push({ $sort : { ts : 1 } });
 
           if (request.query.limit) { 
@@ -664,8 +664,8 @@ exports.plugin = {
           };
 
           const aggregate = [];
-          aggregate.push({ $lookup: lookup });
           aggregate.push({ $match: query });
+          aggregate.push({ $lookup: lookup });
           aggregate.push({ $sort : { ts : 1 } });
 
           if (request.query.limit) {
@@ -876,8 +876,8 @@ exports.plugin = {
           };
 
           const aggregate = [];
-          aggregate.push({ $lookup: lookup });
           aggregate.push({ $match: query });
+          aggregate.push({ $lookup: lookup });
           aggregate.push({ $sort : { ts : 1 } });
 
           if (request.query.limit) { 
@@ -978,8 +978,8 @@ exports.plugin = {
           };
 
           const aggregate = [];
-          aggregate.push({ $lookup: lookup });
           aggregate.push({ $match: query });
+          aggregate.push({ $lookup: lookup });
           aggregate.push({ $sort : { ts : 1 } });
 
           if (request.query.limit) {
@@ -1093,8 +1093,8 @@ exports.plugin = {
         };
 
         const aggregate = [];
-        aggregate.push({ $lookup: lookup });
         aggregate.push({ $match: query });
+        aggregate.push({ $lookup: lookup });
 
         // console.log(aggregate)
 
