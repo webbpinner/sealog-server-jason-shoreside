@@ -99,7 +99,7 @@ exports.plugin = {
 
         const query = {};
 
-        //Hiddle filtering
+        //Hidden filtering
         if (typeof (request.query.hidden) !== "undefined"){
           if (request.query.hidden && !request.auth.credentials.scope.includes('admin')) {
             return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to retrieve hidden cruises" }).code(401);
@@ -152,7 +152,9 @@ exports.plugin = {
               stopTS = new Date(request.query.stopTS);
             }
 
-            query.ts = { "$gte": startTS , "$lt": stopTS };
+            // query.ts = { "$gte": startTS , "$lt": stopTS };
+            query.start_ts = { "$lt": stopTS };
+            query.stop_ts = { "$gt": startTS };
           }
         }
 

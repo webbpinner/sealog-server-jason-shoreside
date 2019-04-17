@@ -152,7 +152,9 @@ exports.plugin = {
               stopTS = new Date(request.query.stopTS);
             }
 
-            query.ts = { "$gte": startTS , "$lt": stopTS };
+            // query.ts = { "$gte": startTS , "$lt": stopTS };
+            query.start_ts = { "$lt": stopTS };
+            query.stop_ts = { "$gt": startTS };
           }
         }
 
