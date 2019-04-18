@@ -114,19 +114,19 @@ exports.plugin = {
         if (request.query.startTS) {
           const tempStartTS = new Date(request.query.startTS);
           const startTS = (tempStartTS >= cruise.start_ts && tempStartTS <= cruise.stop_ts) ? tempStartTS : cruise.start_ts;
-          query.ts = { $gte: startTS };
+          eventQuery.ts = { $gte: startTS };
         }
         else {
-          query.ts = { $gte: cruise.start_ts };
+          eventQuery.ts = { $gte: cruise.start_ts };
         }
 
         if (request.query.stopTS) {
           const tempStopTS = new Date(request.query.stopTS);
           const stopTS = (tempStopTS >= cruise.start_ts && tempStopTS <= cruise.stop_ts) ? tempStopTS : cruise.stop_ts;
-          query.ts.$lte = stopTS;
+          eventQuery.ts.$lte = stopTS;
         }
         else {
-          query.ts.$lte = cruise.stop_ts;
+          eventQuery.ts.$lte = cruise.stop_ts;
         }
 
         // eventQuery.ts = {"$gte": startTS , "$lte": stopTS };
@@ -137,7 +137,7 @@ exports.plugin = {
         // console.log("eventQuery:", eventQuery);
 
         try {
-          const results = await db.collection(eventsTable).find(eventQuery, { _id: 1 }).skip(offset).limit(limit).toArray();
+          const results = await db.collection(eventsTable).find(eventQuery, { _id: 1 }).sort( { ts: 1 } ).skip(offset).limit(limit).toArray();
 
           // EventID Filtering
           if (results.length > 0) {
@@ -356,9 +356,7 @@ exports.plugin = {
         }
 
         try {
-          const results = await db.collection(eventsTable).find(eventQuery, { _id: 1 }, { _id: 1 }).sort( { ts: 1 } ).toArray();
-
-          // console.log("results:", results)
+          const results = await db.collection(eventsTable).find(eventQuery, { _id: 1 }).sort( { ts: 1 } ).toArray();
 
           // EventID Filtering
           if (results.length > 0) {
@@ -381,8 +379,6 @@ exports.plugin = {
             // Limiting & Offset
             const limit = (request.query.limit) ? request.query.limit : 0;
             const offset = (request.query.offset) ? request.query.offset : 0;
-
-            console.log("query:", query);
 
             try {
               const auxDataResults = await db.collection(eventAuxDataTable).find(query).skip(offset).limit(limit).toArray();
@@ -574,7 +570,7 @@ exports.plugin = {
           // console.log("eventQuery:", eventQuery);
 
           try {
-            const results = await db.collection(eventsTable).find(eventQuery, { _id: 1 }).skip(offset).limit(limit).toArray();
+            const results = await db.collection(eventsTable).find(eventQuery, { _id: 1 }).sort( { ts: 1 } ).skip(offset).limit(limit).toArray();
 
             // EventID Filtering
             if (results.length > 0) {
