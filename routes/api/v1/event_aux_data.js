@@ -356,7 +356,7 @@ exports.plugin = {
         }
 
         try {
-          const results = await db.collection(eventsTable).find(eventQuery, { _id: 1 }).sort( { ts: 1 }).toArray();
+          const results = await db.collection(eventsTable).find(eventQuery, { _id: 1 }).toArray();
 
           // EventID Filtering
           if (results.length > 0) {
