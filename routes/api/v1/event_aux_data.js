@@ -340,19 +340,19 @@ exports.plugin = {
         if (request.query.startTS) {
           const tempStartTS = new Date(request.query.startTS);
           const startTS = (tempStartTS >= lowering.start_ts && tempStartTS <= lowering.stop_ts) ? tempStartTS : lowering.start_ts;
-          query.ts = { $gte: startTS };
+          eventQuery.ts = { $gte: startTS };
         }
         else {
-          query.ts = { $gte: lowering.start_ts };
+          eventQuery.ts = { $gte: lowering.start_ts };
         }
 
         if (request.query.stopTS) {
           const tempStopTS = new Date(request.query.stopTS);
           const stopTS = (tempStopTS >= lowering.start_ts && tempStopTS <= lowering.stop_ts) ? tempStopTS : lowering.stop_ts;
-          query.ts.$lte = stopTS;
+          eventQuery.ts.$lte = stopTS;
         }
         else {
-          query.ts.$lte = lowering.stop_ts;
+          eventQuery.ts.$lte = lowering.stop_ts;
         }
 
         try {
