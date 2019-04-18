@@ -358,6 +358,8 @@ exports.plugin = {
         try {
           const results = await db.collection(eventsTable).find(eventQuery, { _id: 1 }).toArray();
 
+          console.log("results:", results)
+
           // EventID Filtering
           if (results.length > 0) {
             const eventIDs = results.map((event) => {
@@ -380,7 +382,7 @@ exports.plugin = {
             const limit = (request.query.limit) ? request.query.limit : 0;
             const offset = (request.query.offset) ? request.query.offset : 0;
 
-            // console.log("query:", query);
+            console.log("query:", query);
 
             try {
               const auxDataResults = await db.collection(eventAuxDataTable).find(query).skip(offset).limit(limit).toArray();
