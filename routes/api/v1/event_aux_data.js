@@ -137,7 +137,7 @@ exports.plugin = {
         // console.log("eventQuery:", eventQuery);
 
         try {
-          const results = await db.collection(eventsTable).find(eventQuery, { _id: 1 }).sort( { ts: 1 }.skip(offset).limit(limit).toArray();
+          const results = await db.collection(eventsTable).find(eventQuery, { _id: 1 }).sort( { ts: 1 }).skip(offset).limit(limit).toArray();
 
           // EventID Filtering
           if (results.length > 0) {
@@ -356,7 +356,7 @@ exports.plugin = {
         }
 
         try {
-          const results = await db.collection(eventsTable).find(eventQuery, { _id: 1 }).sort( { ts: 1 }.toArray();
+          const results = await db.collection(eventsTable).find(eventQuery, { _id: 1 }).sort( { ts: 1 }).toArray();
 
           // EventID Filtering
           if (results.length > 0) {
@@ -572,7 +572,7 @@ exports.plugin = {
           // console.log("eventQuery:", eventQuery);
 
           try {
-            const results = await db.collection(eventsTable).find(eventQuery, { _id: 1 }).sort( { ts: 1 }.skip(offset).limit(limit).toArray();
+            const results = await db.collection(eventsTable).find(eventQuery, { _id: 1 }).sort( { ts: 1 }).skip(offset).limit(limit).toArray();
 
             // EventID Filtering
             if (results.length > 0) {
