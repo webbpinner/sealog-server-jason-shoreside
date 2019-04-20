@@ -95,232 +95,146 @@ exports.plugin = {
           return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to retrieve hidden cruises" }).code(401);
         }
 
-        const query = {};
+        let query = {};
 
-        //Data source filtering
-        if (request.query.datasource) {
-
-          const datasource_query = {};
-
-          if (Array.isArray(request.query.datasource)) {
-            datasource_query.data_source  = { $in: request.query.datasource };
+        if (request.query.author) {
+          if (Array.isArray(request.query.author)) {
+            query.event_author  = { $in: request.query.author };
           }
           else {
-            datasource_query.data_source  = request.query.datasource;
+            query.event_author  = request.query.author;
           }
+        }
 
-          try {
-            const collection = await db.collection(eventAuxDataTable).find(datasource_query, { _id: 0, event_id: 1 }).toArray();
+        if (request.query.value) {
+          if (Array.isArray(request.query.value)) {
 
-            const eventIDs = collection.map((x) => x.event_id);
+            const inList = [];
+            const ninList = [];
 
-            query._id = { $in: eventIDs };
-          }
-          catch (err) {
-            console.log(err);
-            return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
-          }
-
-          if (request.query.author) {
-            if (Array.isArray(request.query.author)) {
-              query.event_author  = { $in: request.query.author };
-            }
-            else {
-              query.event_author  = request.query.author;
-            }
-          }
-
-          if (request.query.value) {
-            if (Array.isArray(request.query.value)) {
-
-              const inList = [];
-              const ninList = [];
-
-              for ( const value of request.query.value ) {
-                if (value.startsWith("!")) {
-                  ninList.push(value.substr(1));
-                }
-                else {
-                  inList.push(value);
-                }
-              }
-              
-              if ( inList.length > 0 && ninList.length > 0) {
-                query.event_value  = { $in: inList, $nin: ninList };
-              }
-              else if (inList.length > 0) {
-                query.event_value  = { $in: inList };
+            for ( const value of request.query.value ) {
+              if (value.startsWith("!")) {
+                ninList.push(value.substr(1));
               }
               else {
-                query.event_value  = { $nin: ninList };
+                inList.push(value);
               }
+            }
 
+            if ( inList.length > 0 && ninList.length > 0) {
+              query.event_value  = { $in: inList, $nin: ninList };
+            }
+            else if (inList.length > 0) {
+              query.event_value  = { $in: inList };
             }
             else {
-              if (request.query.value.startsWith("!")) {
-                query.event_value  = { $ne: request.query.value.substr(1) };
-              }
-              else {
-                query.event_value  = request.query.value;
-              }
+              query.event_value  = { $nin: ninList };
             }
-          }
 
-          if (request.query.freetext) {
-
-            query.event_free_text = { $regex: `${request.query.freetext}` };
-          }
-
-          //Time filtering
-          if (request.query.startTS) {
-            const tempStartTS = new Date(request.query.startTS);
-            const startTS = (tempStartTS >= cruise.start_ts && tempStartTS <= cruise.stop_ts) ? tempStartTS : cruise.start_ts;
-            query.ts = { $gte: startTS };
           }
           else {
-            query.ts = { $gte: cruise.start_ts };
-          }
-
-          if (request.query.stopTS) {
-            const tempStopTS = new Date(request.query.stopTS);
-            const stopTS = (tempStopTS >= cruise.start_ts && tempStopTS <= cruise.stop_ts) ? tempStopTS : cruise.stop_ts;
-            query.ts.$lte = stopTS;
-          }
-          else {
-            query.ts.$lte = cruise.stop_ts;
-          }
-
-          const limit = (request.query.limit) ? request.query.limit : 0;
-          const offset = (request.query.offset) ? request.query.offset : 0;
-
-          // console.log("query:", query);
-
-          try {
-            const results = await db.collection(eventsTable).find(query).sort( { ts: 1 } ).skip(offset).limit(limit).toArray();
-            // console.log("results:", results);
-
-            if (results.length > 0) {
-              results.forEach(_renameAndClearFields);
-              return h.response(results).code(200);
+            if (request.query.value.startsWith("!")) {
+              query.event_value  = { $ne: request.query.value.substr(1) };
             }
- 
-            return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
-            
+            else {
+              query.event_value  = request.query.value;
+            }
           }
-          catch (err) {
-            console.log(err);
-            return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
-          }
+        }
+
+        if (request.query.freetext) {
+
+          query.event_free_text = { $regex: `${request.query.freetext}` };
+        }
+
+        //Time filtering
+        if (request.query.startTS) {
+          const tempStartTS = new Date(request.query.startTS);
+          const startTS = (tempStartTS >= cruise.start_ts && tempStartTS <= cruise.stop_ts) ? tempStartTS : cruise.start_ts;
+          query.ts = { $gte: startTS };
         }
         else {
-
-          if (request.query.author) {
-            if (Array.isArray(request.query.author)) {
-              query.event_author  = { $in: request.query.author };
-            }
-            else {
-              query.event_author  = request.query.author;
-            }
-          }
-
-          if (request.query.value) {
-            if (Array.isArray(request.query.value)) {
-
-              const inList = [];
-              const ninList = [];
-
-              for ( const value of request.query.value ) {
-                if (value.startsWith("!")) {
-                  ninList.push(value.substr(1));
-                }
-                else {
-                  inList.push(value);
-                }
-              }
-
-              if ( inList.length > 0 && ninList.length > 0) {
-                query.event_value  = { $in: inList, $nin: ninList };
-              }
-              else if (inList.length > 0) {
-                query.event_value  = { $in: inList };
-              }
-              else {
-                query.event_value  = { $nin: ninList };
-              }
-
-            }
-            else {
-              if (request.query.value.startsWith("!")) {
-                query.event_value  = { $ne: request.query.value.substr(1) };
-              }
-              else {
-                query.event_value  = request.query.value;
-              }
-            }
-          }
-
-          if (request.query.freetext) {
-
-            query.event_free_text = { $regex: `${request.query.freetext}` };
-          }
-
-          //Time filtering
-          if (request.query.startTS) {
-            const tempStartTS = new Date(request.query.startTS);
-            const startTS = (tempStartTS >= cruise.start_ts && tempStartTS <= cruise.stop_ts) ? tempStartTS : cruise.start_ts;
-            query.ts = { $gte: startTS };
-          }
-          else {
-            query.ts = { $gte: cruise.start_ts };
-          }
-
-          if (request.query.stopTS) {
-            const tempStopTS = new Date(request.query.stopTS);
-            const stopTS = (tempStopTS >= cruise.start_ts && tempStopTS <= cruise.stop_ts) ? tempStopTS : cruise.stop_ts;
-            query.ts.$lte = stopTS;
-          }
-          else {
-            query.ts.$lte = cruise.stop_ts;
-          }
-
-          const limit = (request.query.limit) ? request.query.limit : 0;
-          const offset = (request.query.offset) ? request.query.offset : 0;
-
-          // console.log("query:", query);
-
-          try {
-            const results = await db.collection(eventsTable).find(query).sort( { ts: 1  } ).skip(offset).limit(limit).toArray();
-            // console.log("results:", results);
-
-            if (results.length > 0) {
-
-              results.forEach(_renameAndClearFields);
-
-              if (request.query.format && request.query.format === "csv") {
-                const csv_results = await Converter.json2csvAsync(_flattenJSON(results), json2csvOptions)
-                  .then((csv) => {
-                  
-                    return csv;
-                  })
-                  .catch((err) => {
-
-                    console.log(err);
-                    throw err;    
-                  });
-
-                return h.response(csv_results).code(200);
-              }
-
-              return h.response(results).code(200);
-            }
-
-            return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
-          }
-          catch (err) {
-            console.log(err);
-            return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
-          }
+          query.ts = { $gte: cruise.start_ts };
         }
+
+        if (request.query.stopTS) {
+          const tempStopTS = new Date(request.query.stopTS);
+          const stopTS = (tempStopTS >= cruise.start_ts && tempStopTS <= cruise.stop_ts) ? tempStopTS : cruise.stop_ts;
+          query.ts.$lte = stopTS;
+        }
+        else {
+          query.ts.$lte = cruise.stop_ts;
+        }
+
+        const limit = (request.query.limit) ? request.query.limit : 0;
+        const offset = (request.query.offset) ? request.query.offset : 0;
+
+        // console.log("query:", query);
+        let results = []
+
+        try {
+          results = await db.collection(eventsTable).find(query).sort( { ts: 1  } ).skip(offset).limit(limit).toArray();
+          // console.log("results:", results);
+        }
+        catch (err) {
+          console.log(err);
+          return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
+        }
+
+        if (results.length > 0) {
+        
+          // --------- Data source filtering
+          if (request.query.datasource) {
+
+            const datasource_query = {};
+
+            const eventIDs = results.map((x) => x.event_id);
+
+            datasource_query.event_id = { $in: eventIDs };
+
+            if (Array.isArray(request.query.datasource)) {
+              datasource_query.data_source  = { $in: request.query.datasource };
+            }
+            else {
+              datasource_query.data_source  = request.query.datasource;
+            }
+
+            let aux_data_results = []
+            try {
+              aux_data_results = await db.collection(eventAuxDataTable).find(datasource_query, { _id: 0, event_id: 1 }).toArray();
+            }
+            catch (err) {
+              console.log(err);
+              return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
+            }
+
+            const aux_data_eventID_set = set(aux_data_results.map(aux_data => aux_data.event_id))
+
+            results = results.filter((event) => {
+              return (aux_data_eventID_set.has(event._id))? event : null
+            })
+          }
+
+          results.forEach(_renameAndClearFields);
+
+          if (request.query.format && request.query.format === "csv") {
+            const csv_results = await Converter.json2csvAsync(_flattenJSON(results), json2csvOptions)
+              .then((csv) => {
+              
+                return csv;
+              })
+              .catch((err) => {
+
+                console.log(err);
+                throw err;    
+              });
+
+            return h.response(csv_results).code(200);
+          }
+
+          return h.response(results).code(200);
+        }
+        return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
       },
       config: {
         auth: {
@@ -414,7 +328,7 @@ exports.plugin = {
           const loweringResult = await db.collection(loweringsTable).findOne({ _id: ObjectID(request.params.id) });
 
           if (!loweringResult) {
-            return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
+            return h.response({ "statusCode": 404, 'message': 'No record found for id: ' + request.params.id }).code(404);
           }
 
           if (!request.auth.credentials.scope.includes('admin')) {
@@ -424,234 +338,156 @@ exports.plugin = {
           }
 
           lowering = loweringResult;
-
         }
         catch (err) {
           console.log(err);
           return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
         }
 
-        const query = {};
+        if (lowering.lowering_hidden && !request.auth.credentials.scope.includes("admin")) {
+          return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to retrieve hidden lowerings" }).code(401);
+        }
 
-        //Data source filtering
-        if (request.query.datasource) {
+        let query = {};
 
-          const datasource_query = {};
-
-          if (Array.isArray(request.query.datasource)) {
-            datasource_query.data_source  = { $in: request.query.datasource };
+        if (request.query.author) {
+          if (Array.isArray(request.query.author)) {
+            query.event_author  = { $in: request.query.author };
           }
           else {
-            datasource_query.data_source  = request.query.datasource;
+            query.event_author  = request.query.author;
           }
+        }
 
-          try {
+        if (request.query.value) {
+          if (Array.isArray(request.query.value)) {
 
-            const collection = await db.collection(eventAuxDataTable).find(datasource_query, { _id: 0, event_id: 1 }).toArray();
-            const eventIDs = collection.map((x) => x.event_id);
-            query._id = { $in: eventIDs };
+            const inList = [];
+            const ninList = [];
 
-          }
-          catch (err) {
-            console.log(err);
-            return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
-          }
-
-          if (request.query.author) {
-            if (Array.isArray(request.query.author)) {
-              query.event_author  = { $in: request.query.author };
-            }
-            else {
-              query.event_author  = request.query.author;
-            }
-          }
-
-          if (request.query.value) {
-            if (Array.isArray(request.query.value)) {
-
-              const inList = [];
-              const ninList = [];
-
-              for ( const value of request.query.value ) {
-                if (value.startsWith("!")) {
-                  ninList.push(value.substr(1));
-                }
-                else {
-                  inList.push(value);
-                }
-              }
-              
-              if ( inList.length > 0 && ninList.length > 0) {
-                query.event_value  = { $in: inList, $nin: ninList };
-              }
-              else if (inList.length > 0) {
-                query.event_value  = { $in: inList };
+            for ( const value of request.query.value ) {
+              if (value.startsWith("!")) {
+                ninList.push(value.substr(1));
               }
               else {
-                query.event_value  = { $nin: ninList };
+                inList.push(value);
               }
+            }
 
+            if ( inList.length > 0 && ninList.length > 0) {
+              query.event_value  = { $in: inList, $nin: ninList };
+            }
+            else if (inList.length > 0) {
+              query.event_value  = { $in: inList };
             }
             else {
-              if (request.query.value.startsWith("!")) {
-                query.event_value  = { $ne: request.query.value.substr(1) };
-              }
-              else {
-                query.event_value  = request.query.value;
-              }
+              query.event_value  = { $nin: ninList };
             }
-          }
 
-          if (request.query.freetext) {
-            query.event_free_text = { $regex: `${request.query.freetext}` };
-          }
-
-          //Time filtering
-          if (request.query.startTS) {
-            const tempStartTS = new Date(request.query.startTS);
-            const startTS = (tempStartTS >= lowering.start_ts && tempStartTS <= lowering.stop_ts) ? tempStartTS : lowering.start_ts;
-            query.ts = { $gte: startTS };
           }
           else {
-            query.ts = { $gte: lowering.start_ts };
-          }
-
-          if (request.query.stopTS) {
-            const tempStopTS = new Date(request.query.stopTS);
-            const stopTS = (tempStopTS >= lowering.start_ts && tempStopTS <= lowering.stop_ts) ? tempStopTS : lowering.stop_ts;
-            query.ts.$lte = stopTS;
-          }
-          else {
-            query.ts.$lte = lowering.stop_ts;
-          }
-
-          const limit = (request.query.limit) ? request.query.limit : 0;
-          const offset = (request.query.offset) ? request.query.offset : 0;
-
-          try {
-
-            const results = await db.collection(eventsTable).find(query).sort( { ts: 1 } ).skip(offset).limit(limit).toArray();
-
-            if (results.length > 0) {
-              results.forEach(_renameAndClearFields);
-              return h.response(results).code(200);
+            if (request.query.value.startsWith("!")) {
+              query.event_value  = { $ne: request.query.value.substr(1) };
             }
- 
-            return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
-            
+            else {
+              query.event_value  = request.query.value;
+            }
           }
-          catch (err) {
-            console.log(err);
-            return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
-          }
+        }
+
+        if (request.query.freetext) {
+
+          query.event_free_text = { $regex: `${request.query.freetext}` };
+        }
+
+        //Time filtering
+        if (request.query.startTS) {
+          const tempStartTS = new Date(request.query.startTS);
+          const startTS = (tempStartTS >= lowering.start_ts && tempStartTS <= lowering.stop_ts) ? tempStartTS : lowering.start_ts;
+          query.ts = { $gte: startTS };
         }
         else {
-
-          if (request.query.author) {
-            if (Array.isArray(request.query.author)) {
-              query.event_author  = { $in: request.query.author };
-            }
-            else {
-              query.event_author  = request.query.author;
-            }
-          }
-
-          if (request.query.value) {
-            if (Array.isArray(request.query.value)) {
-
-              const inList = [];
-              const ninList = [];
-
-              for ( const value of request.query.value ) {
-                if (value.startsWith("!")) {
-                  ninList.push(value.substr(1));
-                }
-                else {
-                  inList.push(value);
-                }
-              }
-
-              if ( inList.length > 0 && ninList.length > 0) {
-                query.event_value  = { $in: inList, $nin: ninList };
-              }
-              else if (inList.length > 0) {
-                query.event_value  = { $in: inList };
-              }
-              else {
-                query.event_value  = { $nin: ninList };
-              }
-
-            }
-            else {
-              if (request.query.value.startsWith("!")) {
-                query.event_value  = { $ne: request.query.value.substr(1) };
-              }
-              else {
-                query.event_value  = request.query.value;
-              }
-            }
-          }
-
-          if (request.query.freetext) {
-
-            query.event_free_text = { $regex: `${request.query.freetext}` };
-          }
-
-          //Time filtering
-          if (request.query.startTS) {
-            const tempStartTS = new Date(request.query.startTS);
-            const startTS = (tempStartTS >= lowering.start_ts && tempStartTS <= lowering.stop_ts) ? tempStartTS : lowering.start_ts;
-            query.ts = { $gte: startTS };
-          }
-          else {
-            query.ts = { $gte: lowering.start_ts };
-          }
-
-          if (request.query.stopTS) {
-            const tempStopTS = new Date(request.query.stopTS);
-            const stopTS = (tempStopTS >= lowering.start_ts && tempStopTS <= lowering.stop_ts) ? tempStopTS : lowering.stop_ts;
-            query.ts.$lte = stopTS;
-          }
-          else {
-            query.ts.$lte = lowering.stop_ts;
-          }
-
-          const limit = (request.query.limit) ? request.query.limit : 0;
-          const offset = (request.query.offset) ? request.query.offset : 0;
-
-          try {
-            const results = await db.collection(eventsTable).find(query).sort( { ts: 1  } ).skip(offset).limit(limit).toArray();
-            // console.log("results:", results);
-
-            if (results.length > 0) {
-
-              results.forEach(_renameAndClearFields);
-
-              if (request.query.format && request.query.format === "csv") {
-                const csv_results = await Converter.json2csvAsync(_flattenJSON(results), json2csvOptions)
-                  .then((csv) => {
-
-                    return csv;
-                  })
-                  .catch((err) => {
-
-                    console.log(err);
-                    throw err;    
-                  });
-
-                return h.response(csv_results).code(200);
-              }
-
-              return h.response(results).code(200);
-            }
-
-            return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
-          }
-          catch (err) {
-            console.log(err);
-            return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
-          }
+          query.ts = { $gte: lowering.start_ts };
         }
+
+        if (request.query.stopTS) {
+          const tempStopTS = new Date(request.query.stopTS);
+          const stopTS = (tempStopTS >= lowering.start_ts && tempStopTS <= lowering.stop_ts) ? tempStopTS : lowering.stop_ts;
+          query.ts.$lte = stopTS;
+        }
+        else {
+          query.ts.$lte = lowering.stop_ts;
+        }
+
+        const limit = (request.query.limit) ? request.query.limit : 0;
+        const offset = (request.query.offset) ? request.query.offset : 0;
+
+        // console.log("query:", query);
+        let results = []
+
+        try {
+          results = await db.collection(eventsTable).find(query).sort( { ts: 1  } ).skip(offset).limit(limit).toArray();
+          // console.log("results:", results);
+        }
+        catch (err) {
+          console.log(err);
+          return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
+        }
+
+        if (results.length > 0) {
+        
+          // --------- Data source filtering
+          if (request.query.datasource) {
+
+            const datasource_query = {};
+
+            const eventIDs = results.map((x) => x.event_id);
+
+            datasource_query.event_id = { $in: eventIDs };
+
+            if (Array.isArray(request.query.datasource)) {
+              datasource_query.data_source  = { $in: request.query.datasource };
+            }
+            else {
+              datasource_query.data_source  = request.query.datasource;
+            }
+
+            let aux_data_results = []
+            try {
+              aux_data_results = await db.collection(eventAuxDataTable).find(datasource_query, { _id: 0, event_id: 1 }).toArray();
+            }
+            catch (err) {
+              console.log(err);
+              return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
+            }
+
+            const aux_data_eventID_set = set(aux_data_results.map(aux_data => aux_data.event_id))
+
+            results = results.filter((event) => {
+              return (aux_data_eventID_set.has(event._id))? event : null
+            })
+          }
+
+          results.forEach(_renameAndClearFields);
+
+          if (request.query.format && request.query.format === "csv") {
+            const csv_results = await Converter.json2csvAsync(_flattenJSON(results), json2csvOptions)
+              .then((csv) => {
+              
+                return csv;
+              })
+              .catch((err) => {
+
+                console.log(err);
+                throw err;    
+              });
+
+            return h.response(csv_results).code(200);
+          }
+
+          return h.response(results).code(200);
+        }
+        return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
       },
       config: {
         auth: {
