@@ -208,7 +208,7 @@ exports.plugin = {
               return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
             }
 
-            const aux_data_eventID_set = set(aux_data_results.map(aux_data => aux_data.event_id))
+            const aux_data_eventID_set = new Set(aux_data_results.map(aux_data => aux_data.event_id))
 
             results = results.filter((event) => {
               return (aux_data_eventID_set.has(event._id))? event : null
@@ -461,7 +461,7 @@ exports.plugin = {
               return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
             }
 
-            const aux_data_eventID_set = set(aux_data_results.map(aux_data => aux_data.event_id))
+            const aux_data_eventID_set = new Set(aux_data_results.map(aux_data => aux_data.event_id))
 
             results = results.filter((event) => {
               return (aux_data_eventID_set.has(event._id))? event : null
