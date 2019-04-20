@@ -441,7 +441,7 @@ exports.plugin = {
 
             const datasource_query = {};
 
-            const eventIDs = results.map((x) => x.event_id);
+            const eventIDs = results.map((event) => event._id);
 
             datasource_query.event_id = { $in: eventIDs };
 
