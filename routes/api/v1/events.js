@@ -452,6 +452,7 @@ exports.plugin = {
               datasource_query.data_source  = request.query.datasource;
             }
 
+            console.log("datasource_query:", datasource_query)
             let aux_data_results = []
             try {
               aux_data_results = await db.collection(eventAuxDataTable).find(datasource_query, { _id: 0, event_id: 1 }).toArray();
@@ -462,10 +463,13 @@ exports.plugin = {
             }
 
             const aux_data_eventID_set = new Set(aux_data_results.map(aux_data => aux_data.event_id))
+            console.log("aux_data_eventID_set:", aux_data_eventID_set)
 
             results = results.filter((event) => {
               return (aux_data_eventID_set.has(event._id))? event : null
             })
+            console.log("results:", results)
+
           }
 
           results.forEach(_renameAndClearFields);
