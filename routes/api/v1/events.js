@@ -443,6 +443,8 @@ exports.plugin = {
 
             const eventIDs = results.map((event) => event._id);
 
+            console.log("eventIDs Type:", type(eventID[0]))
+
             datasource_query.event_id = { $in: eventIDs };
 
             if (Array.isArray(request.query.datasource)) {
@@ -464,6 +466,8 @@ exports.plugin = {
 
             const aux_data_eventID_set = new Set(aux_data_results.map(aux_data => aux_data.event_id))
             console.log("aux_data_eventID_set:", aux_data_eventID_set)
+
+            console.log("result eventID Type:", type(result[0]._id))
 
             results = results.filter((event) => {
               return (aux_data_eventID_set.has(event._id))? event : null
