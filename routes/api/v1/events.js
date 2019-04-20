@@ -188,7 +188,7 @@ exports.plugin = {
 
             const datasource_query = {};
 
-            const eventIDs = results.map((x) => x.event_id);
+            const eventIDs = results.map((event) => event._id);
 
             datasource_query.event_id = { $in: eventIDs };
 
@@ -208,11 +208,12 @@ exports.plugin = {
               return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
             }
 
-            const aux_data_eventID_set = new Set(aux_data_results.map(aux_data => aux_data.event_id))
+            const aux_data_eventID_set = new Set(aux_data_results.map(aux_data => String(aux_data.event_id)))
 
             results = results.filter((event) => {
-              return (aux_data_eventID_set.has(event._id))? event : null
+              return (aux_data_eventID_set.has(String(event._id)))? event : null
             })
+
           }
 
           results.forEach(_renameAndClearFields);
@@ -443,8 +444,6 @@ exports.plugin = {
 
             const eventIDs = results.map((event) => event._id);
 
-            console.log("eventIDs Type:", typeof(eventIDs[0]))
-
             datasource_query.event_id = { $in: eventIDs };
 
             if (Array.isArray(request.query.datasource)) {
@@ -454,7 +453,6 @@ exports.plugin = {
               datasource_query.data_source  = request.query.datasource;
             }
 
-            console.log("datasource_query:", datasource_query)
             let aux_data_results = []
             try {
               aux_data_results = await db.collection(eventAuxDataTable).find(datasource_query, { _id: 0, event_id: 1 }).toArray();
@@ -465,14 +463,10 @@ exports.plugin = {
             }
 
             const aux_data_eventID_set = new Set(aux_data_results.map(aux_data => String(aux_data.event_id)))
-            console.log("aux_data_eventID_set:", aux_data_eventID_set)
-
-            console.log("results eventID Type:", typeof(results[0]._id))
 
             results = results.filter((event) => {
               return (aux_data_eventID_set.has(String(event._id)))? event : null
             })
-            console.log("results:", results)
 
           }
 
