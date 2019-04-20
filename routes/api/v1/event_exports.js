@@ -200,6 +200,7 @@ exports.plugin = {
 
         try {
           results = await db.collection(eventsTable).aggregate(aggregate).skip(offset).toArray();
+        }
         catch (err) {
           console.log(err);
           return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);
@@ -449,6 +450,7 @@ exports.plugin = {
 
         try {
           results = await db.collection(eventsTable).aggregate(aggregate).skip(offset).toArray();
+        }
         catch (err) {
           console.log(err);
           return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);
