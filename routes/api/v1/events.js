@@ -95,7 +95,7 @@ exports.plugin = {
           return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to retrieve hidden cruises" }).code(401);
         }
 
-        let query = {};
+        const query = {};
 
         if (request.query.author) {
           if (Array.isArray(request.query.author)) {
@@ -170,7 +170,7 @@ exports.plugin = {
         const offset = (request.query.offset) ? request.query.offset : 0;
 
         // console.log("query:", query);
-        let results = []
+        let results = [];
 
         try {
           results = await db.collection(eventsTable).find(query).sort( { ts: 1  } ).skip(offset).limit(limit).toArray();
@@ -199,7 +199,7 @@ exports.plugin = {
               datasource_query.data_source  = request.query.datasource;
             }
 
-            let aux_data_results = []
+            let aux_data_results = [];
             try {
               aux_data_results = await db.collection(eventAuxDataTable).find(datasource_query, { _id: 0, event_id: 1 }).toArray();
             }
@@ -208,11 +208,12 @@ exports.plugin = {
               return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
             }
 
-            const aux_data_eventID_set = new Set(aux_data_results.map(aux_data => String(aux_data.event_id)))
+            const aux_data_eventID_set = new Set(aux_data_results.map((aux_data) => String(aux_data.event_id)));
 
             results = results.filter((event) => {
-              return (aux_data_eventID_set.has(String(event._id)))? event : null
-            })
+
+              return (aux_data_eventID_set.has(String(event._id))) ? event : null;
+            });
 
           }
 
@@ -235,6 +236,7 @@ exports.plugin = {
 
           return h.response(results).code(200);
         }
+
         return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
       },
       config: {
@@ -349,7 +351,7 @@ exports.plugin = {
           return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to retrieve hidden lowerings" }).code(401);
         }
 
-        let query = {};
+        const query = {};
 
         if (request.query.author) {
           if (Array.isArray(request.query.author)) {
@@ -424,7 +426,7 @@ exports.plugin = {
         const offset = (request.query.offset) ? request.query.offset : 0;
 
         // console.log("query:", query);
-        let results = []
+        let results = [];
 
         try {
           results = await db.collection(eventsTable).find(query).sort( { ts: 1  } ).skip(offset).limit(limit).toArray();
@@ -453,7 +455,7 @@ exports.plugin = {
               datasource_query.data_source  = request.query.datasource;
             }
 
-            let aux_data_results = []
+            let aux_data_results = [];
             try {
               aux_data_results = await db.collection(eventAuxDataTable).find(datasource_query, { _id: 0, event_id: 1 }).toArray();
             }
@@ -462,11 +464,12 @@ exports.plugin = {
               return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
             }
 
-            const aux_data_eventID_set = new Set(aux_data_results.map(aux_data => String(aux_data.event_id)))
+            const aux_data_eventID_set = new Set(aux_data_results.map((aux_data) => String(aux_data.event_id)));
 
             results = results.filter((event) => {
-              return (aux_data_eventID_set.has(String(event._id)))? event : null
-            })
+              
+              return (aux_data_eventID_set.has(String(event._id))) ? event : null;
+            });
 
           }
 
@@ -489,6 +492,7 @@ exports.plugin = {
 
           return h.response(results).code(200);
         }
+
         return h.response({ "statusCode": 404, 'message': 'No records found' }).code(404);
       },
       config: {
