@@ -510,7 +510,7 @@ exports.plugin = {
           return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);
         }
 
-        if (typeof (request.payload.cruise_hidden) !== 'undefined'){
+        if (typeof (request.payload.cruise_hidden) !== 'undefined' && request.payload.cruise_hidden !== cruise.cruise_hidden){
           const loweringQuery = { start_ts: { "$gte": new Date(cruise.start_ts) }, stop_ts: { "$lt": new Date(cruise.stop_ts) } };
           try {
             await db.collection(loweringsTable).updateMany(loweringQuery, { $set: { lowering_hidden: request.payload.cruise_hidden } });
