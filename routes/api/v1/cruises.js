@@ -539,7 +539,7 @@ exports.plugin = {
 
           if (add.length > 0) {
             try {
-              await db.collection(loweringsTable).updateMany(loweringQuery, { $push: { lowering_access_list: { $each: add } } });
+              await db.collection(loweringsTable).updateMany(loweringQuery, { $addToSet: { lowering_access_list: { $each: add } } });
             }
             catch (err) {
               console.log("ERROR:", err);
