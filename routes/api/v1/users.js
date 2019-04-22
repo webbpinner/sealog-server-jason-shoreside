@@ -13,7 +13,7 @@ const {
 } = require('../../../config/db_constants');
 
 const {
-  emailAddress, emailPassword
+  emailAddress, emailPassword, resetPasswordURL
 } = require('../../../config/shoreside_constants');
 
 const emailTransporter = Nodemailer.createTransport({
@@ -267,21 +267,23 @@ exports.plugin = {
         
         user.password = hashedPassword;
 
+        let result = null;
+
         try {
-          const result = await db.collection(usersTable).insertOne(user);
+          result = await db.collection(usersTable).insertOne(user);
           if (!result) {
             return h.response({ "statusCode": 400, 'message': 'Bad request' }).code(400);
           }
         }
         catch (err) {
           console.log(err);
-          return h.response({ statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503);
+          return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
         }
 
         const token = Crypto.randomBytes(20).toString('hex');
           
         try {
-          await db.collection(usersTable).updateOne({ _id: user._id }, { $set: { resetPasswordToken: token, resetPasswordExpires: Date.now() + (resetPasswordExpires * 60 * 60 * 1000) } }); // token expires in 24 hours
+          await db.collection(usersTable).updateOne({ _id: user._id }, { $set: { resetPasswordToken: token, resetPasswordExpires: Date.now() + (resetPasswordTokenExpires * 60 * 60 * 1000) } }); // token expires in 24 hours
         }
         catch (err) {
           console.log("ERROR:", err);
