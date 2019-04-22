@@ -272,6 +272,7 @@ exports.plugin = {
           if (!result) {
             return h.response({ "statusCode": 400, 'message': 'Bad request' }).code(400);
           }
+        }
         catch (err) {
           console.log(err);
           return h.response({ statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503);
