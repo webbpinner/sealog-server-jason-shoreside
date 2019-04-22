@@ -2,8 +2,11 @@ const Nodemailer = require('nodemailer');
 
 const Bcrypt = require('bcryptjs');
 const Joi = require('joi');
+const Crypto = require('crypto');
 
 const saltRounds = 10;
+
+const resetPasswordTokenExpires = 24; //hours
 
 const {
   usersTable
@@ -269,28 +272,41 @@ exports.plugin = {
           if (!result) {
             return h.response({ "statusCode": 400, 'message': 'Bad request' }).code(400);
           }
+        catch (err) {
+          console.log(err);
+          return h.response({ statusCode: 503, error: "reCaptcha error", message: "unknown error" }).code(503);
+        }
 
-          const mailOptions = {
-            from: emailAddress, // sender address
-            to: user.email, // list of receivers
-            subject: 'Welcome to Sealog', // Subject line
-            html: '<p>Welcome to Sealog. If you are receiving this email you have just created an account on Sealog.</p><p>If you have any questions please reply to this email address</p><p>Thanks!</p>'
-          };
-
-          emailTransporter.sendMail(mailOptions, (err) => {
-
-            if (err) {
-              console.log("ERROR:", err);
-            }
-          });
-
-          return h.response({ n: result.result.n, ok: result.result.ok, insertedCount: result.insertedCount, insertedId: result.insertedId }).code(201);
-
+        const token = Crypto.randomBytes(20).toString('hex');
+          
+        try {
+          await db.collection(usersTable).updateOne({ _id: user._id }, { $set: { resetPasswordToken: token, resetPasswordExpires: Date.now() + (resetPasswordExpires * 60 * 60 * 1000) } }); // token expires in 24 hours
         }
         catch (err) {
           console.log("ERROR:", err);
-          return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);
+          return h.response({ statusCode: 503, error: "server error", message: "database error" }).code(503);            
         }
+
+        const resetLink = resetPasswordURL + token;
+        const mailOptions = {
+          from: emailAddress, // sender address
+          to: request.payload.email, // list of receivers
+          subject: 'Sealog - New User Created', // Subject line
+          html: `<p>A new Sealog user account was created and associated with this email address.  The username for this account is: ${user.username}</p>
+          <p>To set the password for this account please click on the link below.  This link will expire in ${resetPasswordTokenExpires} hours.</p>
+          <p><a href="${resetLink}">${resetLink}</a></p>
+          <p>Please send any Sealog-related questions to: ${emailAddress}</p>
+          <p>Thanks!</p>`
+        };
+
+        emailTransporter.sendMail(mailOptions, (err) => {
+
+          if (err) {
+            console.log("ERROR:", err);
+          }
+        });
+
+        return h.response({ n: result.result.n, ok: result.result.ok, insertedCount: result.insertedCount, insertedId: result.insertedId }).code(201);
       },
       config: {
         auth: {

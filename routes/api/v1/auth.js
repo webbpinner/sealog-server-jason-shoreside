@@ -469,7 +469,7 @@ exports.plugin = {
           from: emailAddress, // sender address
           to: request.payload.email, // list of receivers
           subject: 'Sealog Password Reset Request', // Subject line
-          html: '<p>Sealog has recieved a request to reset the Sealog account associated with this email address. If you did not request this then please just ignore this message. If you would like to change your password please click on the link below.  This link will expire in ' + resetPasswordTokenExpires + ' minutes:</p><p><a href=' + resetLink + '>' + resetLink + '</a></p><p>Please do not reply to this email address as it is rarely checked. If you have any questions please contact @DataRat on Spectrum.</p><p>Thanks!<br/>-@DataRat</p>'
+          html: '<p>Sealog has recieved a request to reset the Sealog account associated with this email address. If you did not request this then please just ignore this message. If you would like to change your password please click on the link below.  This link will expire in ' + resetPasswordTokenExpires + ' minutes:</p><p><a href=' + resetLink + '>' + resetLink + '</a></p>'
         };
 
         emailTransporter.sendMail(mailOptions, (err) => {
