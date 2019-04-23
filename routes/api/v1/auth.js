@@ -30,7 +30,7 @@ const emailTransporter = Nodemailer.createTransport({
 const _rolesToScope = (roles) => {
 
   if (roles.includes("admin")){
-    return ['admin', 'read_events', 'write_events', 'read_event_templates', 'write_event_templates', 'read_cruises', 'write_cruises', 'read_lowerings', 'write_lowerings', 'read_users', 'write_users'];
+    return ['admin'];
   }
 
   const scope = roles.reduce((scope_accumulator, role) => {
