@@ -580,14 +580,14 @@ exports.plugin = {
         }
       },
       config: {
-        auth: {
-          strategy: 'jwt',
-          scope: ['admin', 'read_events']
-        },
+        // auth: {
+        //   strategy: 'jwt',
+        //   scope: ['admin', 'read_events']
+        // },
         validate: {
-          headers: {
-            authorization: Joi.string().required()
-          },
+          // headers: {
+          //   authorization: Joi.string().required()
+          // },
           params: {
             param: Joi.string().required()
           },
