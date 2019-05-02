@@ -40,6 +40,7 @@ exports.plugin = {
 
           if (!request.auth.credentials.scope.includes('admin')) {
             if (cruiseResult.cruise_hidden || !cruiseResult.cruise_access_list.includes(request.auth.credentials.id)) {
+            // if (cruiseResult.cruise_hidden) {  
               return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to retrieve this cruise" }).code(401);
             }
           }
@@ -272,6 +273,7 @@ exports.plugin = {
 
           if (!request.auth.credentials.scope.includes('admin')) {
             if (loweringResult.lowering_hidden || !loweringResult.lowering_access_list.includes(request.auth.credentials.id)) {
+            // if (loweringResult.lowering_hidden) {
               return h.response({ "statusCode": 401, "error": "not authorized", "message": "User not authorized to retrieve this lowering" }).code(401);
             }
           }

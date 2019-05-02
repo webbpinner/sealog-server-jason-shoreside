@@ -495,7 +495,7 @@ exports.plugin = {
           //move files from tmp directory to permanent directory
           try {
             request.payload.lowering_additional_meta.lowering_files.map((file) => {
-            
+
               _mvFilesToDir(Path.join(Tmp.tmpdir,file), Path.join(LOWERING_PATH, request.params.id));
             });
           }

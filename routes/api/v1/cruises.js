@@ -109,8 +109,8 @@ exports.plugin = {
         }
         else if (!request.auth.credentials.scope.includes('admin')) {
           const user_id = request.auth.credentials.id;
-          query.cruise_hidden = false;
           query.cruise_access_list = user_id;
+          query.cruise_hidden = false;
         }
 
         // Cruise ID filtering... if using this then there's no reason to use other filters
