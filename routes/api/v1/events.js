@@ -1003,21 +1003,7 @@ exports.plugin = {
           event.event_free_text = "";
         }
 
-        if (event.event_author) {
-          try {
-            const result = await db.collection(usersTable).findOne({ username: event.event_author });
-
-            if (!result) {
-              return h.response({ "statusCode": 401, 'error': 'invalid user', 'message': 'specified user does not exist' }).code(401);
-            }
-
-          }
-          catch (err) {
-            console.log(err);
-            return h.response({ statusCode: 503, error: "database error", message: "unknown error" }).code(503);
-          }
-        }
-        else {
+        if (!event.event_author) {
           try {
             const result = await db.collection(usersTable).findOne({ _id: new ObjectID(request.auth.credentials.id) });
             

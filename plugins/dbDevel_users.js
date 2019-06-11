@@ -12,14 +12,14 @@ exports.plugin = {
 
     const test_data = [
       {
-        _id: ObjectID("5981f167212b348aed7fa9f5"),
-        username: "jason",
-        fullname: "Jason",
-        email: "jason@notarealserver.com",
-        password: "$2a$10$bPX0STFJoacb6Qu3lTWabOQAdaXVyDIe.ngqa2HGC2DbWL4Fsb/h2",
+        _id: ObjectId("5981f167212b348aed7fa9f5"),
+        username: "admin",
+        fullname: "Admin",
+        email : "admin@notarealserver.com",
+        password: "$2a$10$dg.sG4mJUIapemopyIxltuqpY78WkNcUTbzXjw0OSjyerWOUC01la",
         last_login: new Date(),
-        roles: ['admin', 'event_manager', 'event_logger', 'event_watcher'],
-        system_user: true
+        roles: [ "admin", "event_watcher", "event_logger", "event_manager", "cruise_manager" ],
+        system_user: true,
       },
       {
         _id: ObjectID("5981f167212b348aed7fb9f5"),
